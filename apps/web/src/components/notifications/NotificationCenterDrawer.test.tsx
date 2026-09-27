@@ -37,7 +37,7 @@ const NOTIFICATIONS: Notification[] = [
   },
 ];
 
-const noop = () => {};
+const noop = (): Promise<void> => Promise.resolve();
 
 function renderBell(unreadCount: number) {
   return renderToString(<NotificationBell unreadCount={unreadCount} onClick={noop} />);
@@ -102,7 +102,10 @@ describe('NotificationDrawer', () => {
 
   it('shows the unread count in the header', () => {
     const html = renderDrawer();
-    expect(html).toContain('2 unread');
+    // React inserts a `<!-- -->` marker between adjacent text nodes, so the
+    // count and the word are matched separately rather than as one string.
+    expect(html).toContain('data-testid="drawer-unread-count"');
+    expect(html).toContain('>2<!-- --> unread</span>');
   });
 
   it('offers a Mark all read action', () => {

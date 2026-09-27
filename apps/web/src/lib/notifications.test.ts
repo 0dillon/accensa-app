@@ -168,7 +168,11 @@ describe('dismissNotification', () => {
 
 describe('createNotification', () => {
   it('inserts and returns the mapped notification', async () => {
-    const client = fakeClient([ROW]);
+    // The client returns the inserted row on the same mock, so the row's
+    // category must match the one the insert requests.
+    const client = fakeClient([
+      { ...ROW, category: 'security', title: 'New sign-in', body: 'A new device signed in to your account.' },
+    ]);
     const notification = await createNotification(
       client,
       1,
