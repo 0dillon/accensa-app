@@ -27,6 +27,7 @@ export default async function proxy(request: NextRequest) {
   // settlement report before its own verification ever ran.
   const isPublicApi =
     path.startsWith('/api/verify') ||
+    path === '/api/status' ||
     path.startsWith('/api/auth') ||
     path.startsWith('/api/hook/') ||
     path.startsWith('/api/receipts/');

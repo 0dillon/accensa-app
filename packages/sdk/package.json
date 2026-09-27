@@ -32,6 +32,7 @@
     "./webhooks": "./webhooks.ts",
     "./retry": "./retry.ts",
     "./currency": "./currency.ts",
+    "./session/express": "./src/session/express.ts",
     "./zk-proof": "./src/zk-proof.ts"
   },
   "files": [
