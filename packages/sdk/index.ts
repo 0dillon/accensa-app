@@ -86,6 +86,34 @@ export {
   type ZkVerifier,
 } from './src/zk-proof';
 
+/** Strongly-typed Soroban contract event definitions and decoders (#421). */
+export {
+  decodeAccensaEvent,
+  tryDecodeAccensaEvent,
+  matchAccensaEvent,
+  isDepositEvent,
+  isRefundEvent,
+  isDisputeEvent,
+  isAnchorEvent,
+  isMultisigEvent,
+  depositTopicFilter,
+  refundTopicFilter,
+  disputeTopicFilter,
+  anchorTopicFilter,
+  multisigTopicFilter,
+  EventDecodeError,
+  type AccensaEvent,
+  type AccensaEventType,
+  type DepositEvent,
+  type RefundEvent,
+  type DisputeEvent,
+  type DisputeStatus,
+  type AnchorEvent,
+  type MultisigEvent,
+  type MultisigOperation,
+  type RawSorobanRpcEvent,
+} from './src/events';
+
 /**
  * This package deliberately ships no paywall middleware.
  *
