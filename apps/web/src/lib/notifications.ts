@@ -202,10 +202,10 @@ export async function dismissNotification(
   merchantId: number,
   id: number,
 ): Promise<boolean> {
-  const res = await client.query(
-    `DELETE FROM notifications WHERE merchant_id = $1 AND id = $2`,
-    [merchantId, id],
-  );
+  const res = await client.query(`DELETE FROM notifications WHERE merchant_id = $1 AND id = $2`, [
+    merchantId,
+    id,
+  ]);
   return (res.rowCount ?? 0) > 0;
 }
 

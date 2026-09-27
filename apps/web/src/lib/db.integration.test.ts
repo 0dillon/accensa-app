@@ -39,6 +39,8 @@ async function setupTestDatabase(): Promise<void> {
       'receipt_batches',
       'webhook_deliveries',
       'webhook_attempts',
+      'notifications',
+      'merchant_totp',
     ]) {
       await client.query(`ALTER TABLE IF EXISTS ${table} OWNER TO test_app_user`).catch(() => {});
     }

@@ -1,10 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import {
-  NotificationBell,
-  NotificationDrawer,
-} from './NotificationCenterDrawer';
+import { NotificationBell, NotificationDrawer } from './NotificationCenterDrawer';
 import type { Notification } from '@/lib/notifications';
 
 const NOTIFICATIONS: Notification[] = [
@@ -148,7 +145,7 @@ describe('NotificationDrawer', () => {
 
   it('shows the error state when the fetch failed', () => {
     const html = renderDrawer({ error: 'Internal Server Error' });
-    expect(html).toContain("Couldn&#x27;t load notifications");
+    expect(html).toContain('Couldn&#x27;t load notifications');
     expect(html).toContain('Internal Server Error');
   });
 

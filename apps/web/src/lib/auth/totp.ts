@@ -1,4 +1,11 @@
-import { randomBytes, createHash, createHmac, createCipheriv, createDecipheriv, timingSafeEqual } from 'crypto';
+import {
+  randomBytes,
+  createHash,
+  createHmac,
+  createCipheriv,
+  createDecipheriv,
+  timingSafeEqual,
+} from 'crypto';
 import type { Client } from 'pg';
 
 /**
@@ -67,11 +74,7 @@ export function decryptTotpSecret(stored: string): string {
   if (version !== 'v1' || !ivB64 || !tagB64 || !dataB64) {
     throw new Error('Unrecognised TOTP secret format');
   }
-  const decipher = createDecipheriv(
-    'aes-256-gcm',
-    jwtDerivedKey(),
-    Buffer.from(ivB64, 'base64'),
-  );
+  const decipher = createDecipheriv('aes-256-gcm', jwtDerivedKey(), Buffer.from(ivB64, 'base64'));
   decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
   return Buffer.concat([
     decipher.update(Buffer.from(dataB64, 'base64')),

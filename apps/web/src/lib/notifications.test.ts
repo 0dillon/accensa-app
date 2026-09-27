@@ -87,7 +87,11 @@ describe('listNotifications', () => {
 
   it('converts Date objects to ISO strings', async () => {
     const client = fakeClient([
-      { ...ROW, created_at: new Date('2026-09-26T12:00:00.000Z'), read_at: new Date('2026-09-26T13:00:00.000Z') },
+      {
+        ...ROW,
+        created_at: new Date('2026-09-26T12:00:00.000Z'),
+        read_at: new Date('2026-09-26T13:00:00.000Z'),
+      },
     ]);
     const [notification] = await listNotifications(client, 1);
     expect(notification.created_at).toBe('2026-09-26T12:00:00.000Z');
@@ -171,7 +175,12 @@ describe('createNotification', () => {
     // The client returns the inserted row on the same mock, so the row's
     // category must match the one the insert requests.
     const client = fakeClient([
-      { ...ROW, category: 'security', title: 'New sign-in', body: 'A new device signed in to your account.' },
+      {
+        ...ROW,
+        category: 'security',
+        title: 'New sign-in',
+        body: 'A new device signed in to your account.',
+      },
     ]);
     const notification = await createNotification(
       client,
@@ -183,7 +192,12 @@ describe('createNotification', () => {
 
     const [sql, params] = client.query.mock.calls[0];
     expect(sql).toContain('INSERT INTO notifications');
-    expect(params).toEqual([1, 'security', 'New sign-in', 'A new device signed in to your account.']);
+    expect(params).toEqual([
+      1,
+      'security',
+      'New sign-in',
+      'A new device signed in to your account.',
+    ]);
     expect(notification.id).toBe(7);
     expect(notification.category).toBe('security');
   });

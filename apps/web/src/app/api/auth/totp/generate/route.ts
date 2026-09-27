@@ -3,11 +3,7 @@ import QRCode from 'qrcode';
 import { withClient } from '@/lib/db';
 import { getMerchantFromRequest } from '@/lib/merchants';
 import { isAdmin } from '@/lib/rbac';
-import {
-  generateTotpSecret,
-  storePendingTotpSecret,
-  hashBackupCodes,
-} from '@/lib/auth/totp';
+import { generateTotpSecret, storePendingTotpSecret, hashBackupCodes } from '@/lib/auth/totp';
 
 export const dynamic = 'force-dynamic';
 
