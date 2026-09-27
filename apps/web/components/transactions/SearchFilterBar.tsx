@@ -4,10 +4,16 @@ import { useTransactionFilters } from '../../hooks/useTransactionFilters';
 export const SearchFilterBar: React.FC = () => {
   const { filters, updateFilters, clearFilters } = useTransactionFilters();
   const [searchInput, setSearchInput] = useState(filters.search);
+  const [syncedSearch, setSyncedSearch] = useState(filters.search);
 
-  useEffect(() => {
+  // Mirror an external change to the filter (back/forward, a cleared URL) into
+  // the input while rendering, so the box does not show a search the URL no
+  // longer has. Doing it here rather than in an effect keeps the update in the
+  // same render that noticed the change.
+  if (filters.search !== syncedSearch) {
+    setSyncedSearch(filters.search);
     setSearchInput(filters.search);
-  }, [filters.search]);
+  }
 
   useEffect(() => {
     const handler = setTimeout(() => {

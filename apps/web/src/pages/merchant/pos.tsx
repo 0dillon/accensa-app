@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Head from 'next/head';
-import Keypad from '../../components/pos/Keypad';
+import Keypad from '../../../components/pos/Keypad';
 
 interface OfflineTransaction {
   amount: string;

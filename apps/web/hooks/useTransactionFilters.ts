@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback } from 'react';
 
 export interface TransactionFilters {
   search: string;
@@ -8,34 +8,26 @@ export interface TransactionFilters {
   dateRange: string;
 }
 
+/**
+ * The transaction filters, read straight off the router instead of being
+ * mirrored into state: the URL is already the source of truth, so a copy would
+ * only need an effect to stay in step with it.
+ */
 export function useTransactionFilters() {
   const router = useRouter();
-  const [filters, setFilters] = useState<TransactionFilters>({
+
+  const filters: TransactionFilters = {
     search: (router.query.search as string) || '',
     status: (router.query.status as string) || '',
     asset: (router.query.asset as string) || '',
     dateRange: (router.query.dateRange as string) || '',
-  });
-
-  useEffect(() => {
-    if (router.isReady) {
-      setFilters({
-        search: (router.query.search as string) || '',
-        status: (router.query.status as string) || '',
-        asset: (router.query.asset as string) || '',
-        dateRange: (router.query.dateRange as string) || '',
-      });
-    }
-  }, [router.isReady, router.query]);
+  };
 
   const updateFilters = useCallback(
     (newFilters: Partial<TransactionFilters>) => {
-      const merged = { ...filters, ...newFilters };
-      setFilters(merged);
-
       const query = { ...router.query };
-      
-      Object.entries(merged).forEach(([key, value]) => {
+
+      Object.entries(newFilters).forEach(([key, value]) => {
         if (value) {
           query[key] = value;
         } else {
@@ -45,11 +37,10 @@ export function useTransactionFilters() {
 
       router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
     },
-    [filters, router]
+    [router],
   );
 
   const clearFilters = useCallback(() => {
-    setFilters({ search: '', status: '', asset: '', dateRange: '' });
     router.push({ pathname: router.pathname }, undefined, { shallow: true });
   }, [router]);
 

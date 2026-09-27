@@ -87,6 +87,30 @@ function readConfig() {
 }
 
 /**
+ * Drop SGR escape sequences from a message. Prettier colours its
+ * option-validation errors whenever the process looks like an interactive
+ * terminal, and CI counts — the workflow log renders the same failure as
+ * `Invalid ESC[31mtrailingCommaESC[39m value`. Assertions compare the words,
+ * not the decoration, so the two environments agree.
+ */
+function stripAnsi(text) {
+  return String(text).replace(/\u001b\[[0-9;]*m/g, '');
+}
+
+/**
+ * Await `run` and return the rejection's message with colours removed, failing
+ * the test if it resolves instead.
+ */
+async function rejectionMessage(run) {
+  try {
+    await run();
+  } catch (error) {
+    return stripAnsi(error instanceof Error ? error.message : String(error));
+  }
+  return assert.fail('expected the call to reject, but it resolved');
+}
+
+/**
  * Remove `//` and block comments from JSON5 source without eating comment
  * markers that appear inside string literals — a value such as
  * `https://example.com` must not truncate the rest of the line. Needed because
@@ -685,10 +709,10 @@ describe(`${CONFIG_NAME} — failure modes`, () => {
     const resolved = await prettier.resolveConfig(file);
     assert.deepEqual(resolved, { trailingComma: 'bogus' });
 
-    await assert.rejects(
-      () => prettier.format('const a = 1;', { parser: 'babel', ...resolved }),
-      /Invalid trailingComma value/,
+    const message = await rejectionMessage(() =>
+      prettier.format('const a = 1;', { parser: 'babel', ...resolved }),
     );
+    assert.match(message, /Invalid trailingComma value/);
   });
 
   test('a wrong-typed value is rejected at format time', async () => {
@@ -696,10 +720,10 @@ describe(`${CONFIG_NAME} — failure modes`, () => {
     const resolved = await prettier.resolveConfig(file);
     assert.deepEqual(resolved, { printWidth: 'wide' });
 
-    await assert.rejects(
-      () => prettier.format('const a = 1;', { parser: 'babel', ...resolved }),
-      /Invalid printWidth value/,
+    const message = await rejectionMessage(() =>
+      prettier.format('const a = 1;', { parser: 'babel', ...resolved }),
     );
+    assert.match(message, /Invalid printWidth value/);
   });
 
   test('a config module that throws surfaces its error', async () => {

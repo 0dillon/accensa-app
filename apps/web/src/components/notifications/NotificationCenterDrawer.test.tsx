@@ -1,10 +1,7 @@
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import {
-  NotificationBell,
-  NotificationDrawer,
-} from './NotificationCenterDrawer';
+import { NotificationBell, NotificationDrawer } from './NotificationCenterDrawer';
 import type { Notification } from '@/lib/notifications';
 
 const NOTIFICATIONS: Notification[] = [
@@ -39,6 +36,21 @@ const NOTIFICATIONS: Notification[] = [
 
 const noop = () => {};
 
+/**
+ * The text a screen reader would take from the markup. React splits
+ * `{unreadCount} unread` into two text runs separated by a comment node, which
+ * is invisible to assistive technology but lands in `renderToString` output as
+ * `<!-- -->`.
+ */
+const visibleText = (html: string) => html.replace(/<!--.*?-->/g, '');
+
+/**
+ * The drawer's action props resolve a Promise so callers can await the write;
+ * a plain `() => void` would not type-check as one. Nothing awaits them here —
+ * these tests only render.
+ */
+const asyncNoop = async () => {};
+
 function renderBell(unreadCount: number) {
   return renderToString(<NotificationBell unreadCount={unreadCount} onClick={noop} />);
 }
@@ -52,9 +64,9 @@ function renderDrawer(props: Partial<Parameters<typeof NotificationDrawer>[0]> =
       unreadCount={2}
       loading={false}
       error={null}
-      onMarkAllAsRead={noop}
-      onMarkAsRead={noop}
-      onDismiss={noop}
+      onMarkAllAsRead={asyncNoop}
+      onMarkAsRead={asyncNoop}
+      onDismiss={asyncNoop}
       {...props}
     />,
   );
@@ -102,7 +114,7 @@ describe('NotificationDrawer', () => {
 
   it('shows the unread count in the header', () => {
     const html = renderDrawer();
-    expect(html).toContain('2 unread');
+    expect(visibleText(html)).toContain('2 unread');
   });
 
   it('offers a Mark all read action', () => {
@@ -145,7 +157,7 @@ describe('NotificationDrawer', () => {
 
   it('shows the error state when the fetch failed', () => {
     const html = renderDrawer({ error: 'Internal Server Error' });
-    expect(html).toContain("Couldn&#x27;t load notifications");
+    expect(html).toContain('Couldn&#x27;t load notifications');
     expect(html).toContain('Internal Server Error');
   });
 
@@ -173,9 +185,9 @@ describe('NotificationCenter (closed by default)', () => {
         unreadCount={2}
         loading={false}
         error={null}
-        onMarkAllAsRead={noop}
-        onMarkAsRead={noop}
-        onDismiss={noop}
+        onMarkAllAsRead={asyncNoop}
+        onMarkAsRead={asyncNoop}
+        onDismiss={asyncNoop}
       />,
     );
     expect(html).toBe('');

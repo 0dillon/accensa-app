@@ -1,11 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import {
-  fetchNotifications,
-  postNotificationAction,
-  useNotifications,
-} from './useNotifications';
+import { fetchNotifications, postNotificationAction, useNotifications } from './useNotifications';
 
 const LIST_RESPONSE = {
   notifications: [
@@ -40,9 +36,12 @@ describe('fetchNotifications', () => {
     const result = await fetchNotifications();
 
     expect(result).toEqual(LIST_RESPONSE);
-    expect(fetchMock).toHaveBeenCalledWith('/api/notifications', expect.objectContaining({
-      cache: 'no-store',
-    }));
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/notifications',
+      expect.objectContaining({
+        cache: 'no-store',
+      }),
+    );
   });
 
   it('throws the server error message on a non-2xx response', async () => {

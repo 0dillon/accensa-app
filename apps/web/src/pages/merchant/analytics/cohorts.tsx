@@ -1,6 +1,6 @@
 import React from 'react';
 import Head from 'next/head';
-import CohortHeatmap from '../../../components/analytics/CohortHeatmap';
+import CohortHeatmap from '../../../../components/analytics/CohortHeatmap';
 
 // Mock data representing pre-aggregated cohort data
 const mockCohortData = [
