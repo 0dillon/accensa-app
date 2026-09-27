@@ -256,9 +256,9 @@ jobs:
         run: npm install -g pnpm@11
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Install Playwright browser
+      - name: Install Playwright browsers
         working-directory: ./apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install --with-deps chromium firefox
       - name: Run e2e + accessibility suite
         working-directory: ./apps/web
         env:

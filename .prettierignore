@@ -9,3 +9,5 @@ pnpm-lock.yaml
 packages/sdk/merkle-vectors.json
 packages/sdk/vectors.rs
 next-env.d.ts
+test-results
+playwright-report
