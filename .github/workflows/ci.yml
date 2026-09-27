@@ -240,7 +240,9 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright browser
         working-directory: ./apps/web
-        run: pnpm exec playwright install --with-deps chromium
+        # Firefox as well as chromium: the e2e config runs both projects, and
+        # a missing browser binary fails the job after the server is up.
+        run: pnpm exec playwright install --with-deps chromium firefox
       - name: Run e2e + accessibility suite
         working-directory: ./apps/web
         env:

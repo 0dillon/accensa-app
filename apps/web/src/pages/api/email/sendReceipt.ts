@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { sendReceiptEmail } from '../../../lib/email';
+import { sendReceiptEmail } from '../../../../lib/email';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {

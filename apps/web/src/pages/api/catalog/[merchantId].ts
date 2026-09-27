@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { revalidateCatalog } from '../../../lib/cache/revalidate';
+import { revalidateCatalog } from '../../../../lib/cache/revalidate';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { merchantId, revalidate } = req.query;
@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === 'GET') {
     // Configure Edge Caching & Stale-While-Revalidate
     res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
-    
+
     // Ensure pricing and escrow configuration remain non-cached
     // In a real implementation this would fetch from a database. We return mocked safe catalog data.
     const catalogData = {
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       items: [
         { id: 'prod_1', name: 'Premium Widget', description: 'A high quality widget.' },
         { id: 'prod_2', name: 'Basic Widget', description: 'A standard widget.' },
-      ]
+      ],
     };
 
     return res.status(200).json(catalogData);

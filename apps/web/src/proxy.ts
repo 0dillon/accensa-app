@@ -15,8 +15,63 @@ import { parseRole, type Role } from '@/lib/rbac';
 const secretKey = process.env.JWT_SECRET_KEY;
 const key = secretKey ? new TextEncoder().encode(secretKey) : null;
 
+/**
+ * Builds the per-request Content-Security-Policy (with a fresh nonce) that page
+ * requests are served with.
+ *
+ * This lived in `middleware.ts` until Next.js 16 stopped allowing a
+ * `middleware.ts` alongside a `proxy.ts` in the same app; the logic was merged
+ * here so the nonce-based CSP and the security hardening headers survive.
+ * Only page requests carry them — JSON API responses never did.
+ */
+function securityHeaderValues(): { csp: string; nonce: string } {
+  const nonce = btoa(crypto.randomUUID());
+
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' blob: data:;
+    font-src 'self';
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    connect-src 'self' https: wss:;
+    upgrade-insecure-requests;
+  `;
+
+  return { csp: cspHeader.replace(/\s{2,}/g, ' ').trim(), nonce };
+}
+
+/** Attaches the security hardening headers to a page response. */
+function harden(response: NextResponse, csp: string): NextResponse {
+  response.headers.set('Content-Security-Policy', csp);
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  return response;
+}
+
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
+  const isPageRequest = !path.startsWith('/api/');
+
+  // Page requests get a per-request CSP nonce, propagated to the app router
+  // through the request headers (server components read `x-nonce`) and echoed
+  // on the response so the browser enforces it.
+  const { csp, nonce } = isPageRequest ? securityHeaderValues() : { csp: '', nonce: '' };
+  const requestHeaders = new Headers(request.headers);
+  if (isPageRequest) {
+    requestHeaders.set('x-nonce', nonce);
+    requestHeaders.set('Content-Security-Policy', csp);
+  }
+
+  const hardenedNext = () => {
+    const response = NextResponse.next({ request: { headers: requestHeaders } });
+    return isPageRequest ? harden(response, csp) : response;
+  };
 
   // Define public and private paths.
   //
@@ -67,13 +122,12 @@ export default async function proxy(request: NextRequest) {
       // Route handlers trust this header for merchant scoping instead of each
       // re-verifying and re-decoding the session cookie themselves. It is only
       // ever set here, after jwtVerify has succeeded, so a request cannot
-      // forge it — Next.js middleware runs before the request reaches a route
-      // handler and this header is set on the *outgoing* request, overwriting
-      // any value a caller tried to smuggle in.
-      const headers = new Headers(request.headers);
-      headers.set('x-accensa-merchant', merchantAddress ?? '');
-      headers.set('x-accensa-role', role);
-      return NextResponse.next({ request: { headers } });
+      // forge it — the proxy runs before the request reaches a route handler
+      // and this header is set on the *outgoing* request, overwriting any
+      // value a caller tried to smuggle in.
+      requestHeaders.set('x-accensa-merchant', merchantAddress ?? '');
+      requestHeaders.set('x-accensa-role', role);
+      return hardenedNext();
     } catch {
       if (isPrivateApi) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       return NextResponse.redirect(new URL('/login', request.url));
@@ -88,9 +142,21 @@ export default async function proxy(request: NextRequest) {
     }
   }
 
-  return NextResponse.next();
+  return hardenedNext();
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/:path*'],
+  matcher: [
+    '/dashboard/:path*',
+    '/api/:path*',
+    // The page-route matcher from the former middleware.ts: everything except
+    // API routes, static assets, and the favicon, minus prefetch requests.
+    {
+      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
+      missing: [
+        { type: 'header', key: 'next-router-prefetch' },
+        { type: 'header', key: 'purpose', value: 'prefetch' },
+      ],
+    },
+  ],
 };
