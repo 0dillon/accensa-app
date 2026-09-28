@@ -4,6 +4,9 @@ import { requestNotificationPermission, playAudioAlert } from '../../lib/notific
 export const NotificationPreferences: React.FC = () => {
   // Read once at mount instead of mirroring into state via an effect (which
   // cascades a second render and is rejected by react-hooks/set-state-in-effect).
+  // Read during the first render instead of in an effect: `window` is absent
+  // on the server, so the server and the client's first pass both report
+  // 'default' and only a later client render can differ.
   const [permission, setPermission] = useState<NotificationPermission>(() =>
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default',
   );

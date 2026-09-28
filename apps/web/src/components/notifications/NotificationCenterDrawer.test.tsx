@@ -36,6 +36,21 @@ const NOTIFICATIONS: Notification[] = [
 
 const noop = (): Promise<void> => Promise.resolve();
 
+/**
+ * The text a screen reader would take from the markup. React splits
+ * `{unreadCount} unread` into two text runs separated by a comment node, which
+ * is invisible to assistive technology but lands in `renderToString` output as
+ * `<!-- -->`.
+ */
+const visibleText = (html: string) => html.replace(/<!--.*?-->/g, '');
+
+/**
+ * The drawer's action props resolve a Promise so callers can await the write;
+ * a plain `() => void` would not type-check as one. Nothing awaits them here —
+ * these tests only render.
+ */
+const asyncNoop = async () => {};
+
 function renderBell(unreadCount: number) {
   return renderToString(<NotificationBell unreadCount={unreadCount} onClick={noop} />);
 }
@@ -49,9 +64,9 @@ function renderDrawer(props: Partial<Parameters<typeof NotificationDrawer>[0]> =
       unreadCount={2}
       loading={false}
       error={null}
-      onMarkAllAsRead={noop}
-      onMarkAsRead={noop}
-      onDismiss={noop}
+      onMarkAllAsRead={asyncNoop}
+      onMarkAsRead={asyncNoop}
+      onDismiss={asyncNoop}
       {...props}
     />,
   );
@@ -103,6 +118,7 @@ describe('NotificationDrawer', () => {
     // count and the word are matched separately rather than as one string.
     expect(html).toContain('data-testid="drawer-unread-count"');
     expect(html).toContain('>2<!-- --> unread</span>');
+    expect(visibleText(html)).toContain('2 unread');
   });
 
   it('offers a Mark all read action', () => {
@@ -173,9 +189,9 @@ describe('NotificationCenter (closed by default)', () => {
         unreadCount={2}
         loading={false}
         error={null}
-        onMarkAllAsRead={noop}
-        onMarkAsRead={noop}
-        onDismiss={noop}
+        onMarkAllAsRead={asyncNoop}
+        onMarkAsRead={asyncNoop}
+        onDismiss={asyncNoop}
       />,
     );
     expect(html).toBe('');
