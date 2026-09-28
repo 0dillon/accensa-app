@@ -5,12 +5,12 @@ on:
     branches: ['main']
     paths:
       - 'apps/web/**'
-      - '.github/workflows/visual.yml'
+      - '.github/workflows/visual-test.yml'
   push:
     branches: ['main']
     paths:
       - 'apps/web/**'
-      - '.github/workflows/visual.yml'
+      - '.github/workflows/visual-test.yml'
 
 jobs:
   visual:
