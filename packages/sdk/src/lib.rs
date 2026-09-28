@@ -1,33 +1,13 @@
-// GENERATED FILE — do not edit by hand.
-//
-// Emitted by packages/sdk/scripts/generate-vectors.mjs in the accensa-app repo,
-// from the same source of truth as packages/sdk/merkle-vectors.json. The
-// TypeScript SDK and this contract are tested against byte-identical vectors,
-// so any divergence between the two implementations fails one of the suites.
-//
-// To regenerate:
-//   node packages/sdk/scripts/generate-vectors.mjs   # in accensa-app
-//   cp packages/sdk/vectors.rs \
-//      ../accensa-contracts/contracts/receipt-anchor/src/vectors.rs
+use sha2::{Digest, Sha256};
 
-/// Represents a single test vector for verifying Merkle tree proofs.
-/// These vectors are used across different languages (TypeScript/Rust)
-/// to ensure cross-platform compatibility of the Merkle verification logic.
 pub struct Vector {
-    /// A human-readable description of what this specific test vector validates.
     pub name: &'static str,
-    /// The 32-byte hash of the leaf node being proven.
     pub leaf: [u8; 32],
-    /// The Merkle proof: a sequence of 32-byte hashes used to compute the root.
     pub proof: &'static [[u8; 32]],
-    /// The expected 32-byte Merkle root hash.
     pub root: [u8; 32],
-    /// Whether this combination of leaf, proof, and root is expected to be valid.
     pub expected: bool,
 }
 
-// Generated layout is intentionally dense; rustfmt would reflow every hash
-// literal and make regeneration produce spurious diffs.
 #[rustfmt::skip]
 pub const VECTORS: &[Vector] = &[
     Vector {
@@ -167,3 +147,46 @@ pub const VECTORS: &[Vector] = &[
         expected: false,
     },
 ];
+
+/// Verifies a Merkle membership proof using sorted-pair SHA-256 hashing.
+///
+/// This implements the same convention as `packages/sdk/merkle.ts`:
+/// siblings are concatenated smaller-hash-first, so proofs carry no
+/// left/right position flags. Returns `true` if the proof verifies
+/// against the root.
+///
+/// # Arguments
+///
+/// * `leaf` - The 32-byte leaf hash
+/// * `proof` - Slice of sibling hashes in leaf-to-root order
+/// * `root` - The expected 32-byte Merkle root
+pub fn verify_merkle_proof(leaf: &[u8; 32], proof: &[[u8; 32]], root: &[u8; 32]) -> bool {
+    let mut computed = *leaf;
+    for sibling in proof {
+        let [lo, hi] = if computed <= *sibling {
+            [computed, *sibling]
+        } else {
+            [*sibling, computed]
+        };
+        let mut hasher = Sha256::new();
+        hasher.update(lo);
+        hasher.update(hi);
+        computed = hasher.finalize().into();
+    }
+    computed == *root
+}
+
+/// Counts the total number of vectors in the suite.
+pub fn vector_count() -> usize {
+    VECTORS.len()
+}
+
+/// Returns the count of vectors expected to verify (expected == true).
+pub fn valid_vector_count() -> usize {
+    VECTORS.iter().filter(|v| v.expected).count()
+}
+
+/// Returns the count of vectors expected to be rejected (expected == false).
+pub fn invalid_vector_count() -> usize {
+    VECTORS.iter().filter(|v| !v.expected).count()
+}
