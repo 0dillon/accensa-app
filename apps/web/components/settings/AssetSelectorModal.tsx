@@ -27,9 +27,6 @@ export const AssetSelectorModal: React.FC<{ onClose: () => void }> = ({ onClose 
       setTokenData(metadata);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to fetch token metadata');
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '';
-      setError(message || 'Failed to fetch token metadata');
     } finally {
       setLoading(false);
     }

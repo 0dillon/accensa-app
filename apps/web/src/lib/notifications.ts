@@ -50,16 +50,6 @@ export interface NotificationsResponse {
   unreadCount: number;
 }
 
-/**
- * A write the notification center can issue against `/api/notifications`.
- * Lives here rather than in the route so the hook posting the action and the
- * handler parsing it share one definition instead of two that can drift.
- */
-export type NotificationAction =
-  | { action: 'mark-all-read' }
-  | { action: 'mark-read'; id: number }
-  | { action: 'dismiss'; id: number };
-
 interface NotificationRow {
   id: string;
   category: string;

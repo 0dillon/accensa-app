@@ -97,25 +97,26 @@ export {
   type DisputeResult,
 } from './src/dispute';
 
-// Widget exports are browser-only (Web Components require DOM)
-// Import conditionally to avoid Node.js test failures
-if (typeof window !== 'undefined') {
-  /** Embeddable checkout widget for third-party integration (#390). */
-  export {
-    AccensaCheckoutWidget,
-    type CheckoutConfig,
-    type WidgetMessage,
-    type ParentMessage,
-  } from './src/widget/checkout-widget';
-  export {
-    initWidgetHost,
-    sendToWidget,
-    embedWidget,
-    createWidget,
-    type WidgetHostOptions,
-    type PaymentRequest,
-  } from './src/widget';
-}
+/**
+ * Widget exports. These are browser-only (the web component touches
+ * `customElements` and `window` at module scope), so the module registers
+ * itself only when a DOM exists; importing it in Node is still safe.
+ */
+import { AccensaCheckoutWidget } from './src/widget/checkout-widget';
+export { AccensaCheckoutWidget };
+export {
+  type CheckoutConfig,
+  type WidgetMessage,
+  type ParentMessage,
+} from './src/widget/checkout-widget';
+export {
+  initWidgetHost,
+  sendToWidget,
+  embedWidget,
+  createWidget,
+  type WidgetHostOptions,
+  type PaymentRequest,
+} from './src/widget';
 
 /** Strongly-typed Soroban contract event definitions and decoders (#421). */
 export {

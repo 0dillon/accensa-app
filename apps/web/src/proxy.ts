@@ -44,9 +44,13 @@ function securityHeaderValues(): { csp: string; nonce: string } {
   return { csp: cspHeader.replace(/\s{2,}/g, ' ').trim(), nonce };
 }
 
-/** Attaches the security hardening headers to a page response. */
+/** Attaches the security hardening headers to a response. */
 function harden(response: NextResponse, csp: string): NextResponse {
-  response.headers.set('Content-Security-Policy', csp);
+  // API requests carry no nonce-CSP (csp is empty there); they still get the
+  // lockdown headers below, which main's middleware applied to every response.
+  if (csp) {
+    response.headers.set('Content-Security-Policy', csp);
+  }
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
@@ -70,29 +74,7 @@ export default async function proxy(request: NextRequest) {
 
   const hardenedNext = () => {
     const response = NextResponse.next({ request: { headers: requestHeaders } });
-    return isPageRequest ? harden(response, csp) : response;
-  };
-
-  const requestHeaders = new Headers(request.headers);
-
-  const next = () => NextResponse.next({ request: { headers: requestHeaders } });
-  /**
-   * The lockdown headers that used to live in `middleware.ts`.
-   *
-   * Next.js 16 deprecated `middleware` in favour of `proxy` and refuses to build when
-   * both files exist, so the two were folded into this one file. The strict *nonce* CSP
-   * that was part of that middleware was deliberately not carried over: a nonce only
-   * exists on dynamically rendered pages, and this app prerenders its public routes, so
-   * stamping `strict-dynamic` onto a static response would block every script on
-   * `/login`, `/dashboard` and friends. Reintroducing it means opting those routes into
-   * dynamic rendering first.
-   */
-  const secure = (response: NextResponse) => {
-    response.headers.set('X-Frame-Options', 'DENY');
-    response.headers.set('X-Content-Type-Options', 'nosniff');
-    response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-    return response;
+    return harden(response, csp);
   };
 
   // Define public and private paths.
@@ -115,19 +97,22 @@ export default async function proxy(request: NextRequest) {
   if (isPrivateApi || isDashboard) {
     if (!key) {
       // Fail closed. A deployment without JWT_SECRET_KEY serves nothing private.
-      return secure(
+      return harden(
         NextResponse.json(
           { error: 'Server misconfigured: JWT_SECRET_KEY is not set' },
-          { status: 500 },
+          {
+            status: 500,
+          },
         ),
+        csp,
       );
     }
 
     const sessionCookie = request.cookies.get('accensa_session')?.value;
     if (!sessionCookie) {
       if (isPrivateApi)
-        return secure(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
-      return secure(NextResponse.redirect(new URL('/login', request.url)));
+        return harden(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), csp);
+      return harden(NextResponse.redirect(new URL('/login', request.url)), csp);
     }
 
     try {
@@ -136,7 +121,7 @@ export default async function proxy(request: NextRequest) {
       if (isPrivateApi && !merchantAddress) {
         // A session with no identifiable merchant cannot be scoped to any
         // tenant's data — treat it the same as no session at all.
-        return secure(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
+        return harden(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), csp);
       }
 
       // RBAC (#156): the role rides in the signed session. Legacy sessions
@@ -153,16 +138,10 @@ export default async function proxy(request: NextRequest) {
       requestHeaders.set('x-accensa-merchant', merchantAddress ?? '');
       requestHeaders.set('x-accensa-role', role);
       return hardenedNext();
-      // forge it — the proxy runs before the request reaches a route
-      // handler and this header is set on the *outgoing* request, overwriting
-      // any value a caller tried to smuggle in.
-      requestHeaders.set('x-accensa-merchant', merchantAddress ?? '');
-      requestHeaders.set('x-accensa-role', role);
-      return secure(next());
     } catch {
       if (isPrivateApi)
-        return secure(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
-      return secure(NextResponse.redirect(new URL('/login', request.url)));
+        return harden(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), csp);
+      return harden(NextResponse.redirect(new URL('/login', request.url)), csp);
     }
   }
 
@@ -170,28 +149,11 @@ export default async function proxy(request: NextRequest) {
   if (isCronSync) {
     const authHeader = request.headers.get('authorization');
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-      return secure(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
+      return harden(NextResponse.json({ error: 'Unauthorized' }, { status: 401 }), csp);
     }
   }
 
   return hardenedNext();
-}
-
-export const config = {
-  matcher: [
-    '/dashboard/:path*',
-    '/api/:path*',
-    // The page-route matcher from the former middleware.ts: everything except
-    // API routes, static assets, and the favicon, minus prefetch requests.
-    {
-      source: '/((?!api|_next/static|_next/image|favicon.ico).*)',
-      missing: [
-        { type: 'header', key: 'next-router-prefetch' },
-        { type: 'header', key: 'purpose', value: 'prefetch' },
-      ],
-    },
-  ],
-  return secure(next());
 }
 
 export const config = {

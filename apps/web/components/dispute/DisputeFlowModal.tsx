@@ -3,18 +3,14 @@
 import React, { useState } from 'react';
 import { X, ChevronRight, ChevronLeft, AlertCircle } from 'lucide-react';
 import { z } from 'zod';
+import { DisputeReason } from './disputeReason';
 import { StepSelection } from './steps/StepSelection';
 import { StepReason } from './steps/StepReason';
 import { StepPreview } from './steps/StepPreview';
 
-/**
- * Dispute reason categories as defined in the escrow contract
- */
-export enum DisputeReason {
-  NON_DELIVERY = 'non_delivery',
-  DEFECTIVE_GOODS = 'defective_goods',
-  UNAUTHORIZED_CHARGE = 'unauthorized_charge',
-}
+// Re-exported for convenience so existing imports keep working; the enum
+// itself lives in `./disputeReason` to avoid an import cycle.
+export { DisputeReason } from './disputeReason';
 
 /**
  * Validation schema for dispute request payload
@@ -49,7 +45,7 @@ export interface DisputeFormData {
 
 /**
  * Multi-step modal for customer dispute and refund requests
- * 
+ *
  * State machine manages transitions between:
  * 1. Selection - Choose refund amount from transaction
  * 2. Reason - Classify dispute type with optional proof
@@ -78,7 +74,11 @@ export function DisputeFlowModal({
   const canProceed = () => {
     switch (currentStep) {
       case 'selection':
-        return formData.refundAmount && parseFloat(formData.refundAmount) > 0;
+        return (
+          !!formData.refundAmount &&
+          parseFloat(formData.refundAmount) > 0 &&
+          parseFloat(formData.refundAmount) <= parseFloat(transactionAmount)
+        );
       case 'reason':
         return formData.reason && formData.description.length >= 10;
       case 'preview':
@@ -169,17 +169,15 @@ export function DisputeFlowModal({
                       currentStep === step
                         ? 'bg-blue-600 text-white'
                         : stepNumbers[currentStep] > stepNumbers[step]
-                        ? 'bg-green-600 text-white'
-                        : 'bg-gray-200 text-gray-600'
+                          ? 'bg-green-600 text-white'
+                          : 'bg-gray-200 text-gray-600'
                     }`}
                   >
                     {stepNumbers[currentStep] > stepNumbers[step] ? '✓' : stepNumbers[step]}
                   </div>
                   <span className="text-xs mt-2 text-gray-600">{stepTitles[step]}</span>
                 </div>
-                {step !== 'preview' && (
-                  <div className="flex-1 h-0.5 mx-2 bg-gray-200" />
-                )}
+                {step !== 'preview' && <div className="flex-1 h-0.5 mx-2 bg-gray-200" />}
               </div>
             ))}
           </div>

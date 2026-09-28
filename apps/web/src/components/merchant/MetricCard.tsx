@@ -25,7 +25,7 @@ export function MetricCard({
   return (
     <div className="bg-white/90 dark:bg-[#0c131d]/90 backdrop-blur-2xl p-6 shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] relative overflow-hidden transition-colors duration-300">
       <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-500/10 blur-[30px] dark:blur-[40px] pointer-events-none" />
-      
+
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest mb-1">
@@ -43,9 +43,7 @@ export function MetricCard({
       </div>
 
       {subtitle && (
-        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          {subtitle}
-        </p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{subtitle}</p>
       )}
 
       {trend && (
@@ -59,9 +57,7 @@ export function MetricCard({
           >
             {trend.isPositive ? '↑' : '↓'} {Math.abs(trend.value)}%
           </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400">
-            vs last period
-          </span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">vs last period</span>
         </div>
       )}
     </div>

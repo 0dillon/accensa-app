@@ -8,11 +8,7 @@ interface QrCountdownProps {
   warningThreshold?: number; // seconds
 }
 
-export function QrCountdown({
-  expiresAt,
-  onExpire,
-  warningThreshold = 30,
-}: QrCountdownProps) {
+export function QrCountdown({ expiresAt, onExpire, warningThreshold = 30 }: QrCountdownProps) {
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     const initial = Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000));
     return initial;

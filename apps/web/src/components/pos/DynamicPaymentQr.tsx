@@ -24,7 +24,7 @@ export function DynamicPaymentQr({
 }: DynamicPaymentQrProps) {
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [expiresAt, setExpiresAt] = useState<Date>(
-    () => new Date(Date.now() + validitySeconds * 1000)
+    () => new Date(Date.now() + validitySeconds * 1000),
   );
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -36,7 +36,7 @@ export function DynamicPaymentQr({
     setStatus('confirmed');
     setShowSuccess(true);
     onPaymentConfirmed?.();
-    
+
     // Hide success animation after 3 seconds
     setTimeout(() => setShowSuccess(false), 3000);
   }, [onPaymentConfirmed]);
@@ -92,13 +92,9 @@ export function DynamicPaymentQr({
           <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 animate-pulse" />
         )}
 
-        <QRCode
-          value={paymentUri}
-          size={200}
-          level="H"
-          includeMargin={false}
-          className="transition-opacity duration-300"
-        />
+        <div className="transition-opacity duration-300">
+          <QRCode value={paymentUri} size={200} />
+        </div>
       </div>
 
       {/* Payment Details */}
@@ -143,11 +139,7 @@ export function DynamicPaymentQr({
           }`}
         />
         <span className="text-xs font-bold uppercase tracking-widest text-slate-600 dark:text-slate-300">
-          {status === 'confirmed'
-            ? 'Paid'
-            : status === 'expired'
-              ? 'Expired'
-              : 'Awaiting Payment'}
+          {status === 'confirmed' ? 'Paid' : status === 'expired' ? 'Expired' : 'Awaiting Payment'}
         </span>
       </div>
     </div>

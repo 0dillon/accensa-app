@@ -1,6 +1,6 @@
 /**
  * Bundle size checker for the checkout widget
- * 
+ *
  * Ensures the widget bundle stays under 45kB gzipped as required by #390.
  * This script runs after build and fails if the size limit is exceeded.
  */
@@ -62,7 +62,9 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`\n✅ Bundle size within limits (${formatBytes(estimatedGzipSize)} / ${formatBytes(MAX_SIZE_GZIP)})`);
+  console.log(
+    `\n✅ Bundle size within limits (${formatBytes(estimatedGzipSize)} / ${formatBytes(MAX_SIZE_GZIP)})`,
+  );
   process.exit(0);
 }
 

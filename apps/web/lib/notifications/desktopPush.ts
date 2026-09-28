@@ -25,10 +25,6 @@ export function playAudioAlert(toneFreq: number = 440) {
     if (!AudioContextCtor) {
       throw new Error('Web Audio API is not supported in this browser');
     }
-    // Safari still ships the prefixed constructor only.
-    const AudioContextCtor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
     audioContext = new AudioContextCtor();
   }
 
