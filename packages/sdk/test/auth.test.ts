@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Keypair, xdr, Address, Networks } from '@stellar/stellar-sdk';
+import { Keypair, xdr, Address, Networks, SorobanDataBuilder } from '@stellar/stellar-sdk';
 import {
   buildSorobanAuthEntry,
   parseSimulationResources,
@@ -18,7 +18,7 @@ describe('Auth Builder', () => {
   const contractId = 'CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC';
 
   it('builds a Soroban authorization entry', () => {
-    const signer = Address.fromPublicKey(keypair.publicKey());
+    const signer = Address.fromString(keypair.publicKey());
     const args = [xdr.ScVal.scvU32(42)];
 
     const entry = buildSorobanAuthEntry({
@@ -30,7 +30,10 @@ describe('Auth Builder', () => {
     });
 
     expect(entry).toBeDefined();
-    expect(entry.address().toScVal().toXDR()).toBeDefined();
+    expect(entry.credentials().switch().name).toBe('sorobanCredentialsAddress');
+    expect(Address.fromScAddress(entry.credentials().value().address()).toString()).toBe(
+      keypair.publicKey(),
+    );
   });
 
   it('parses simulation resources', () => {
@@ -38,7 +41,7 @@ describe('Auth Builder', () => {
       ext: new xdr.ExtensionPoint(0),
       resources: new xdr.SorobanResources({
         instructions: 1000000,
-        readBytes: 500000,
+        diskReadBytes: 500000,
         writeBytes: 100000,
         footprint: new xdr.LedgerFootprint({
           readOnly: [],
@@ -57,15 +60,15 @@ describe('Auth Builder', () => {
   it('injects resource bounds into transaction', () => {
     const transaction = new xdr.Transaction({
       sourceAccount: new xdr.MuxedAccount(
-        xdr.CryptoKeyType.KEY_TYPE_ED25519,
+        xdr.CryptoKeyType.keyTypeEd25519(),
         keypair.rawPublicKey(),
       ),
       fee: 100,
-      seqNum: 0,
-      cond: new xdr.Preconditions(new xdr.PreconditionType(0)),
-      memo: new xdr.Memo(new xdr.MemoType(0)),
+      seqNum: 1n,
+      cond: xdr.Preconditions.precondNone(),
+      memo: xdr.Memo.memoNone(),
       operations: [],
-      ext: new xdr.Extension(1),
+      ext: new xdr.TransactionExt(1, new SorobanDataBuilder().build()),
     });
 
     const resources = {
@@ -76,6 +79,11 @@ describe('Auth Builder', () => {
 
     const updated = injectResourceBounds(transaction, resources);
     expect(updated).toBeDefined();
+    expect(updated.ext().switch()).toBe(1);
+    const parsed = parseSimulationResources(updated.ext().value() as xdr.SorobanTransactionData);
+    expect(parsed.instructions).toBe(1000000n);
+    expect(parsed.readBytes).toBe(500000n);
+    expect(parsed.writeBytes).toBe(100000n);
   });
 
   it('calculates sequence buffer', () => {

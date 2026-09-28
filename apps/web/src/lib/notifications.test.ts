@@ -172,6 +172,8 @@ describe('dismissNotification', () => {
 
 describe('createNotification', () => {
   it('inserts and returns the mapped notification', async () => {
+    // The client returns the inserted row on the same mock, so the row's
+    // category must match the one the insert requests.
     // The fake answers with whatever row it was given; here that is what the
     // INSERT's RETURNING clause would hand back — the values just supplied.
     const client = fakeClient([

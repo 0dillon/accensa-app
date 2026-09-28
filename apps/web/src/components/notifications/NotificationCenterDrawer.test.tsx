@@ -34,7 +34,7 @@ const NOTIFICATIONS: Notification[] = [
   },
 ];
 
-const noop = () => {};
+const noop = (): Promise<void> => Promise.resolve();
 
 /**
  * The text a screen reader would take from the markup. React splits
@@ -114,6 +114,10 @@ describe('NotificationDrawer', () => {
 
   it('shows the unread count in the header', () => {
     const html = renderDrawer();
+    // React inserts a `<!-- -->` marker between adjacent text nodes, so the
+    // count and the word are matched separately rather than as one string.
+    expect(html).toContain('data-testid="drawer-unread-count"');
+    expect(html).toContain('>2<!-- --> unread</span>');
     expect(visibleText(html)).toContain('2 unread');
   });
 

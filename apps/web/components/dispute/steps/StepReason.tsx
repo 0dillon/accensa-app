@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DisputeReason } from '../DisputeFlowModal';
+import { DisputeReason } from '../disputeReason';
 
 export interface StepReasonProps {
   reason: DisputeReason | null;
@@ -14,12 +14,12 @@ export interface StepReasonProps {
 
 /**
  * Step 2: Reason classification with optional proof attachment
- * 
+ *
  * Customer selects dispute reason from predefined categories:
  * - Non-delivery: Item was never received
  * - Defective goods: Item arrived but is defective/not as described
  * - Unauthorized charge: Charge was not authorized by the customer
- * 
+ *
  * Optional proof attachment can be provided (screenshots, receipts, etc.)
  */
 export function StepReason({
@@ -68,7 +68,8 @@ export function StepReason({
       <div>
         <h3 className="text-lg font-medium mb-2">Select Dispute Reason</h3>
         <p className="text-gray-600 text-sm">
-          Choose the category that best describes your issue. This helps us process your dispute faster.
+          Choose the category that best describes your issue. This helps us process your dispute
+          faster.
         </p>
       </div>
 
@@ -126,8 +127,18 @@ export function StepReason({
               className="flex flex-col items-center justify-center w-full p-6 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50 transition-colors"
             >
               <div className="text-gray-500">
-                <svg className="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                <svg
+                  className="w-8 h-8 mx-auto mb-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  />
                 </svg>
                 <p className="text-sm">Click to upload proof</p>
                 <p className="text-xs text-gray-400 mt-1">Images or PDF (max 5MB)</p>
@@ -152,7 +163,12 @@ export function StepReason({
               className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           </div>

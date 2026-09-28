@@ -1,6 +1,6 @@
 /**
  * Widget host utilities for integrating the checkout widget
- * 
+ *
  * Provides helper functions for embedding the widget and handling
  * postMessage communication between the parent page and widget iframe.
  */
@@ -26,9 +26,9 @@ export interface PaymentRequest {
 
 /**
  * Initialize widget communication in the parent page
- * 
+ *
  * Call this function in your page to handle messages from the embedded widget.
- * 
+ *
  * @param options - Configuration options
  * @returns Cleanup function to remove event listeners
  */
@@ -88,7 +88,7 @@ export function initWidgetHost(options: WidgetHostOptions = {}): () => void {
 
 /**
  * Send a message to the widget and wait for response
- * 
+ *
  * @param iframe - The widget iframe element
  * @param message - Message to send
  * @param timeout - Response timeout in milliseconds
@@ -123,17 +123,14 @@ export function sendToWidget(
 
 /**
  * Embed the widget as an iframe
- * 
+ *
  * Creates an iframe element configured to host the checkout widget.
- * 
+ *
  * @param config - Checkout configuration
  * @param widgetUrl - URL of the widget HTML page
  * @returns The iframe element
  */
-export function embedWidget(
-  config: CheckoutConfig,
-  widgetUrl: string,
-): HTMLIFrameElement {
+export function embedWidget(config: CheckoutConfig, widgetUrl: string): HTMLIFrameElement {
   const iframe = document.createElement('iframe');
   iframe.setAttribute('data-accensa-widget', 'true');
   iframe.style.border = 'none';
@@ -177,9 +174,9 @@ export function embedWidget(
 
 /**
  * Create a widget instance with automatic cleanup
- * 
+ *
  * Convenience function that combines embedWidget and initWidgetHost.
- * 
+ *
  * @param config - Checkout configuration
  * @param widgetUrl - URL of the widget HTML page
  * @param options - Host options

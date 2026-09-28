@@ -28,6 +28,11 @@ export function useMerchantTelemetry(merchantId: string | null) {
   const reconnectAttempts = useRef(0);
   const MAX_RECONNECT_ATTEMPTS = 5;
   const RECONNECT_DELAY = 3000;
+  // `connect` schedules its own retry on stream error. Calling the callback
+  // from inside itself is rejected by react-hooks/immutability, so the retry
+  // goes through a ref that the effect below keeps pointing at the latest
+  // `connect`.
+  const connectRef = useRef<(() => void) | null>(null);
 
   const connect = useCallback(() => {
     if (!merchantId || eventSourceRef.current) return;
@@ -61,7 +66,7 @@ export function useMerchantTelemetry(merchantId: string | null) {
       if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
         reconnectAttempts.current += 1;
         reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
+          connectRef.current?.();
         }, RECONNECT_DELAY);
       }
     };
@@ -81,8 +86,12 @@ export function useMerchantTelemetry(merchantId: string | null) {
   }, []);
 
   useEffect(() => {
+    connectRef.current = connect;
     connect();
-    return () => disconnect();
+    return () => {
+      connectRef.current = null;
+      disconnect();
+    };
   }, [connect, disconnect]);
 
   return state;
