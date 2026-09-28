@@ -100,7 +100,10 @@ export function useNotifications(): UseNotificationsResult {
   );
 
   const markAllAsRead = useCallback(() => runAction({ action: 'mark-all-read' }), [runAction]);
-  const markAsRead = useCallback((id: number) => runAction({ action: 'mark-read', id }), [runAction]);
+  const markAsRead = useCallback(
+    (id: number) => runAction({ action: 'mark-read', id }),
+    [runAction],
+  );
   const dismiss = useCallback((id: number) => runAction({ action: 'dismiss', id }), [runAction]);
 
   return {
