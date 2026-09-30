@@ -8,12 +8,18 @@ import {
   type Settlement,
   type X402SettleResult,
 } from './settlement';
-import { AccensaNetworkError } from './src/errors';
+import { AccensaError, AccensaNetworkError } from './src/errors';
 import { fetchWithRetry, type RetryOptions } from './retry';
 import { signSettlementPayload } from './src/signing';
-import { SETTLE_ENDPOINT, settleEndpointUrl, toSettleReportError } from './src/settle-report';
+import {
+  SETTLE_ENDPOINT,
+  settleEndpointUrl,
+  toSettleHookPayload,
+  toSettleReportError,
+  type SettleHookPayload,
+} from './src/settle-report';
 
-export { verifyReceipt, buildBatch, receiptLeaf, type BatchInfo } from './merkle';
+export { verifyReceipt, buildBatch, receiptLeaf, MAX_PROOF_LEN, type BatchInfo } from './merkle';
 export { fetchWithRetry, HttpError, type RetryOptions } from './retry';
 export {
   SETTLEMENT_HEADER,
@@ -44,6 +50,12 @@ export {
   type OrdersPage,
   type ProductsPage,
 } from './src/client';
+/** Resilient WebSocket subscription to live payments (#451). */
+export {
+  subscribeToPayments,
+  paymentsStreamUrl,
+  type SubscribeToPaymentsOptions,
+} from './src/realtime/client';
 /** Typed error classes for the failure modes consumers actually branch on. */
 export {
   AccensaError,
@@ -79,6 +91,66 @@ export {
   type OpeningProof,
   type ZkVerifier,
 } from './src/zk-proof';
+/** Escrow dispute and refund request functionality (#387). */
+export {
+  DisputeReason,
+  submitDispute,
+  validateDisputeRequest,
+  estimateDisputeFee,
+  mapDisputeReason,
+  type DisputeRequest,
+  type DisputeOptions,
+  type DisputeResult,
+} from './src/dispute';
+
+/**
+ * Widget exports. These are browser-only (the web component touches
+ * `customElements` and `window` at module scope), so the module registers
+ * itself only when a DOM exists; importing it in Node is still safe.
+ */
+import { AccensaCheckoutWidget } from './src/widget/checkout-widget';
+export { AccensaCheckoutWidget };
+export {
+  type CheckoutConfig,
+  type WidgetMessage,
+  type ParentMessage,
+} from './src/widget/checkout-widget';
+export {
+  initWidgetHost,
+  sendToWidget,
+  embedWidget,
+  createWidget,
+  type WidgetHostOptions,
+  type PaymentRequest,
+} from './src/widget';
+
+/** Strongly-typed Soroban contract event definitions and decoders (#421). */
+export {
+  decodeAccensaEvent,
+  tryDecodeAccensaEvent,
+  matchAccensaEvent,
+  isDepositEvent,
+  isRefundEvent,
+  isDisputeEvent,
+  isAnchorEvent,
+  isMultisigEvent,
+  depositTopicFilter,
+  refundTopicFilter,
+  disputeTopicFilter,
+  anchorTopicFilter,
+  multisigTopicFilter,
+  EventDecodeError,
+  type AccensaEvent,
+  type AccensaEventType,
+  type DepositEvent,
+  type RefundEvent,
+  type DisputeEvent,
+  type DisputeStatus,
+  type AnchorEvent,
+  type MultisigEvent,
+  type MultisigOperation,
+  type RawSorobanRpcEvent,
+} from './src/events';
 
 /**
  * This package deliberately ships no paywall middleware.
@@ -97,6 +169,32 @@ export {
  */
 
 export { SETTLE_ENDPOINT } from './src/settle-report';
+
+/**
+ * The wire contract of `/api/hook/settle`.
+ *
+ * Re-exported from `src/settle-report.ts`, which owns the endpoint's shapes;
+ * they are aliases of `apps/web/openapi.yaml` rather than declarations, so
+ * see `src/api/` for how that works.
+ */
+export {
+  isSettleMethod,
+  toSettleHookPayload,
+  toSettleMethod,
+  SETTLE_METHODS,
+  type SettleHookResult,
+} from './src/settle-report';
+export type { SettleHookPayload };
+
+/** Named types for the indexer's HTTP surface, from the OpenAPI spec. */
+export type {
+  ApiOperationName,
+  ApiPath,
+  HttpMethod,
+  SettlementMethod,
+  SettlementReport,
+  SettlementReportResult,
+} from './src/api';
 
 export interface AccensaHookOptions {
   /** Base URL of your Accensa deployment, e.g. https://accensa-dashboard.vercel.app */
@@ -140,38 +238,6 @@ export interface AccensaHookOptions {
 export const DEFAULT_TIMEOUT_MS = 5_000;
 
 /**
- * The body POSTed to `/api/hook/settle`, and the exact bytes that get signed.
- *
- * Snake-cased because it is a wire format, not an in-process value. Declaring
- * it here means a change to either end that the other does not follow is a
- * compile error in this package rather than a 401 or 400 found in production.
- */
-export interface SettleHookPayload {
-  tx_hash: string;
-  route: string;
-  method: string;
-  request_id?: string;
-  payer?: string;
-  amount?: string;
-  network?: string;
-  reported_at?: string;
-}
-
-/** Builds the wire body for one settlement. */
-export function toSettleHookPayload(settlement: Settlement): SettleHookPayload {
-  return {
-    tx_hash: settlement.txHash,
-    route: settlement.route,
-    method: settlement.method,
-    request_id: settlement.requestId,
-    payer: settlement.payer,
-    amount: settlement.amount,
-    network: settlement.network,
-    reported_at: new Date().toISOString(),
-  };
-}
-
-/**
  * The request surface the middleware reads.
  *
  * Express's `Request` satisfies it structurally, and so does anything shaped
@@ -190,14 +256,41 @@ export interface AttributableRequest {
  * Reports one settlement to Accensa.
  *
  * Best-effort: resolves false rather than throwing, so a caller in a request
- * path can ignore the result safely.
+ * path can ignore the result safely. That holds for *every* failure, including
+ * a settlement whose method the indexer will not accept - the report is
+ * rejected through `onError` with no request made, rather than escaping from a
+ * `res.on('finish')` listener and taking the process with it.
  */
 export async function reportSettlement(
   settlement: Settlement,
   opts: AccensaHookOptions,
 ): Promise<boolean> {
+  if (!opts || typeof opts !== 'object') {
+    reportToConsole(new AccensaError('Invalid options supplied to reportSettlement'));
+    return false;
+  }
+
   const report = opts.onError ?? reportToConsole;
-  const body = toSettleHookPayload(settlement);
+
+  // Built inside the try: the payload is validated against the spec
+  // (`toSettleHookPayload`), and a validation failure has nowhere useful to
+  // go except the same `onError` channel as a delivery failure.
+  let body: SettleHookPayload | undefined;
+  try {
+    body = toSettleHookPayload(settlement);
+  } catch (error) {
+    report(error, body);
+    return false;
+  }
+
+  if (!opts.indexerUrl || typeof opts.indexerUrl !== 'string') {
+    report(new AccensaError('Missing or invalid indexerUrl in options'), body);
+    return false;
+  }
+
+  // Only safe once the options are known good: `settleEndpointUrl` reads
+  // `indexerUrl` directly, so deriving it earlier turns a rejected report into
+  // an uncaught TypeError on a path that promises never to throw.
   const url = settleEndpointUrl(opts.indexerUrl);
 
   const doFetch = opts.fetchImpl ?? globalThis.fetch;
@@ -328,15 +421,25 @@ export interface SettleHookOptions extends AccensaHookOptions {
  * ```
  */
 export function createSettleHook(opts: SettleHookOptions) {
+  let report = reportToConsole;
+  if (opts && typeof opts === 'object' && typeof opts.onError === 'function') {
+    report = opts.onError;
+  }
+
   return async function onAfterSettle(ctx: {
     result: X402SettleResult;
     paymentPayload?: { resource?: { url?: string } };
   }): Promise<void> {
-    const settlement = settlementFromResult(ctx.result, {
-      route: routeFromResourceUrl(ctx.paymentPayload?.resource?.url),
-      method: opts.method ?? 'GET',
-    });
-    if (settlement) await reportSettlement(settlement, opts);
+    try {
+      if (!ctx || !ctx.result) return;
+      const settlement = settlementFromResult(ctx.result, {
+        route: routeFromResourceUrl(ctx.paymentPayload?.resource?.url),
+        method: opts?.method ?? 'GET',
+      });
+      if (settlement) await reportSettlement(settlement, opts);
+    } catch (error) {
+      report(error);
+    }
   };
 }
 
@@ -353,3 +456,20 @@ function requestFacts(req: AttributableRequest): RequestFacts {
  * @module SDK Core Export Definitions
  * This module re-exports the primary primitives required by consuming clients for interaction with the Accensa protocol.
  */
+export {
+  calculateSplitPayment,
+  validateSplitTotals,
+  suggestOptimalSplit,
+  buildSplitPaymentTransaction,
+  buildSplitAuthEntries,
+  applySlippageTolerance,
+  DEFAULT_USDC_ISSUER,
+  DEFAULT_USDC_ASSET,
+  type TokenAllocation,
+  type SplitRates,
+  type SplitCustomerBalances,
+  type SplitCalculationParams,
+  type SplitCalculationResult,
+  type SplitPaymentTransactionParams,
+  type SorobanSplitAuthEntry,
+} from './src/payment/split';

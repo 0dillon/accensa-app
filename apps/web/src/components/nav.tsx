@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './theme-toggle';
+import { NotificationCenter } from './notifications/NotificationCenterDrawer';
 import { ArrowUpRight } from 'lucide-react';
 
 /**
@@ -83,6 +84,14 @@ export function Nav() {
                 Dashboard
               </Link>
             )}
+            {pathname?.startsWith('/dashboard') && (
+              <Link
+                href="/merchant/settings/notifications"
+                className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
+              >
+                Chat Alerts
+              </Link>
+            )}
             {pathname !== '/support' && (
               <Link
                 href="/support"
@@ -107,6 +116,10 @@ export function Nav() {
 
           {/* Right Nav (Theme Toggle & Connect Wallet) */}
           <div className="flex items-center gap-4">
+            {/* The notification center is authenticated, so it only renders on
+                dashboard pages — the proxy redirects everyone else to /login,
+                so a public page never shows a bell that would 401. */}
+            {pathname?.startsWith('/dashboard') && <NotificationCenter />}
             <Link href="/coming-soon" className={`hidden md:inline-flex ${WALLET_CTA}`}>
               Connect Wallet
             </Link>
@@ -204,6 +217,20 @@ export function Nav() {
             Dashboard
             {pathname === '/dashboard' && <span className="w-2.5 h-2.5 bg-emerald-500" />}
           </Link>
+
+          {pathname?.startsWith('/dashboard') && (
+            <Link
+              href="/merchant/settings/notifications"
+              onClick={() => setIsOpen(false)}
+              className={`text-4xl font-bold tracking-tight transition-colors flex items-center gap-3.5 ${
+                pathname.startsWith('/merchant/settings/notifications')
+                  ? 'text-emerald-600 dark:text-emerald-400'
+                  : 'text-slate-900 dark:text-white hover:text-emerald-500 dark:hover:text-emerald-400'
+              }`}
+            >
+              Chat Alerts
+            </Link>
+          )}
 
           <Link
             href="/support"
