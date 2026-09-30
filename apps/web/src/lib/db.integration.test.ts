@@ -41,9 +41,14 @@ async function setupTestDatabase(): Promise<void> {
       'webhook_attempts',
       'notifications',
       'merchant_totp',
-      // ensureSchema also re-runs ensureNotificationSchema, so the role has to
-      // own this one too or the CREATE INDEX statements are rejected.
-      'notifications',
+      // ensureSchema re-runs ensureNotificationSchema and
+      // ensureChatNotifierSchema, both of which issue CREATE INDEX statements.
+      // CREATE INDEX requires table ownership, and the ownership check runs
+      // before the IF NOT EXISTS short-circuit, so an already-present index
+      // does not save a non-owner: the role has to own every table DDL is
+      // re-run against.
+      'merchant_chat_notifiers',
+      'chat_notification_outbox',
     ]) {
       await client.query(`ALTER TABLE IF EXISTS ${table} OWNER TO test_app_user`).catch(() => {});
     }
