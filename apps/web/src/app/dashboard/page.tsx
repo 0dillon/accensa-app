@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatAmount, sumAmounts, assetLabel } from '@/lib/money';
 import { describeSync, type SyncState } from '@/lib/sync-status';
 import { CSV_BOM, paymentsCsvFilename, paymentsToCsv } from '@/lib/payments-csv';
@@ -17,7 +17,7 @@ import { describeFailure } from '@/lib/network-status';
 import type { Role } from '@/lib/rbac';
 import { formatTimestamp, toISO8601 } from '@/lib/format-timestamp';
 import { focusRestorer, getFocusable, wrapTabTarget } from '@/lib/dialog-focus';
-import { RiskScoreBadge } from '@/components/transactions/RiskScoreBadge';
+import { SocialShareButtons } from '@/components/receipts/SocialShareButtons';
 
 interface Payment {
   tx_hash: string;
@@ -45,6 +45,9 @@ type LoadState =
       totalAmount?: string;
     }
   | { status: 'error'; message: string };
+
+/** Stable empty array for the loading/error branches. */
+const EMPTY_PAYMENTS: Payment[] = [];
 
 /** A page of payments as `/api/payments` returns them. */
 interface PaymentsResponse {
@@ -189,7 +192,7 @@ export function Dashboard() {
   // The current page lives in the URL (?page=2) so it survives reloads and can
   // be linked to; searchParams is the single source of truth, and `goToPage`
   // writes a new URL that the router re-renders this component with.
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams()!;
   const router = useRouter();
   const pathname = usePathname();
   const pageParam = Number(searchParams?.get('page') ?? '1');
@@ -258,6 +261,23 @@ export function Dashboard() {
   }
   const totalCount = data?.total_count ?? payments.length;
 
+  // Fee savings versus a card processor (#419), computed from the payments
+  // already loaded for this page — the newest settlements, which is what the
+  // table below shows. The banner's "this month" figure covers those rows.
+  // Depends on `data?.payments` (a stable reference per SWR) rather than the
+  // `payments` alias above, whose `?? []` would allocate a new array — and
+  // re-run this memo — on every poll.
+  const settledPayments = data?.payments ?? EMPTY_PAYMENTS;
+  const savings = useMemo(
+    () => summarizeSavings(settledPayments.map((p) => ({ amount: p.amount, ts: p.ts }))),
+    [settledPayments],
+  );
+  const monthLabel = new Date().toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
   return (
     <main className="min-h-screen text-slate-600 dark:text-slate-200 font-sans selection:bg-slate-200 dark:selection:bg-white/10 transition-colors duration-300 bg-grid p-6 md:p-12 lg:p-20 pt-28 md:pt-32 lg:pt-32">
       <PageContainer className="space-y-12">
@@ -301,6 +321,16 @@ export function Dashboard() {
             </span>
           </div>
         </header>
+
+        {state.status === 'ready' && (
+          <SavingsBanner
+            monthSavings={savings.monthSavings}
+            totalSavings={savings.totalSavings}
+            monthTransactions={savings.monthTransactionCount}
+            asset={totalAsset || 'XLM'}
+            monthLabel={monthLabel}
+          />
+        )}
 
         {/* Data Table Section */}
         <section className="bg-white/90 dark:bg-[#0c131d]/90 backdrop-blur-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-colors duration-300">
@@ -599,6 +629,14 @@ export function PaymentModal({
             >
               View on Explorer <ArrowUpRight className="w-4 h-4 opacity-70" />
             </a>
+          </div>
+
+          <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/10 transition-colors duration-300">
+            <SocialShareButtons
+              txHash={selected.tx_hash}
+              amount={formatAmount(selected.amount)}
+              asset={assetLabel(selected.asset)}
+            />
           </div>
 
           {canRefund !== false && (

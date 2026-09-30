@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import ProductCard from '../components/ProductCard';
 import Cart from '../components/Cart';
+import { FaucetButton } from '../components/FaucetButton';
+
 
 const products = [
   {
@@ -53,6 +55,9 @@ export default function Home() {
             <option value="testnet">Testnet</option>
             <option value="sandbox">Local Sandbox</option>
           </select>
+          {network === 'testnet' && (
+            <FaucetButton publicKey="GBBD47IF6LWK7P7MDEVSCZA7CFYGLPTQVIREEFUBQ363YUPXGMR26ZJW" />
+          )}
         </div>
       </header>
 
