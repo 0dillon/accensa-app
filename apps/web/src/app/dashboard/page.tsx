@@ -18,6 +18,8 @@ import type { Role } from '@/lib/rbac';
 import { formatTimestamp, toISO8601 } from '@/lib/format-timestamp';
 import { focusRestorer, getFocusable, wrapTabTarget } from '@/lib/dialog-focus';
 import { SocialShareButtons } from '@/components/receipts/SocialShareButtons';
+import { SavingsBanner } from '@/components/merchant/SavingsBanner';
+import { summarizeSavings } from '@/lib/analytics/savingsCalculator';
 
 interface Payment {
   tx_hash: string;
