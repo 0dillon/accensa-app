@@ -256,6 +256,9 @@ jobs:
         run: npm install -g pnpm@11
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Build SDK (web resolves @accensa/sdk from dist)
+        working-directory: ./packages/sdk
+        run: pnpm build
       - name: Install Playwright browsers
         working-directory: ./apps/web
         # Firefox as well as chromium: the e2e config runs both projects, and
