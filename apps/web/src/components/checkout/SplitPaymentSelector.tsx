@@ -9,6 +9,7 @@ import {
   type SplitCustomerBalances,
 } from '@accensa/sdk';
 import { ShieldCheck, AlertCircle, RefreshCw, SlidersHorizontal, ArrowRight } from 'lucide-react';
+import { FiatPriceDisplay } from '@/components/common/FiatPriceDisplay';
 
 export interface SplitPaymentSelectorProps {
   /** Required checkout total in USD */
@@ -168,6 +169,7 @@ export function SplitPaymentSelector({
             {`$${totalAmountUsd.toFixed(2)}`}{' '}
             <span className="text-xs font-normal text-slate-500">USD</span>
           </p>
+          <FiatPriceDisplay amountUsd={totalAmountUsd} />
         </div>
       </div>
 
