@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { PageContainer } from '@/components/page-container';
+import { SystemStatusWidget } from '@/components/common/SystemStatusWidget';
 
 /**
  * Global site footer.
@@ -20,6 +21,7 @@ export function Footer() {
           Accensa
         </Link>
         <div className="flex flex-wrap gap-8 justify-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+          <SystemStatusWidget />
           <Link
             href="/dashboard"
             className="hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors"
