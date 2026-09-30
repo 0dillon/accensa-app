@@ -1,9 +1,4 @@
-import {
-  xdr,
-  SorobanDataBuilder,
-  Address,
-  Contract,
-} from '@stellar/stellar-sdk';
+import { xdr, SorobanDataBuilder, Address } from '@stellar/stellar-sdk';
 
 export interface SorobanAuthEntryInput {
   contractId: string;
@@ -16,29 +11,39 @@ export interface SorobanAuthEntryInput {
 /**
  * Builds a SorobanAuthorizationEntry for a contract invocation.
  *
- * This constructs the authorization entry without browser dependencies,
- * suitable for merchant daemon backends and offline signing workflows.
- * 
- * Note: The exact API for Soroban authorization varies by SDK version.
- * This provides a basic structure that can be adapted as needed.
+ * Constructs a full address-credentials entry whose root invocation calls
+ * `functionName` on `contractId` with `args`. The entry is returned unsigned:
+ * the caller signs `rootInvocation().toXDR()` (see `signAuthEntryOffline`) and
+ * places the signature into the credentials' signature vector.
  */
 export function buildSorobanAuthEntry({
   contractId,
   functionName,
   args,
   signer,
-  networkPassphrase,
 }: SorobanAuthEntryInput): xdr.SorobanAuthorizationEntry {
-  const contract = new Contract(contractId);
-  
-  // Create a basic authorization entry structure
-  // The exact implementation depends on the Stellar SDK version
-  // This is a simplified version that compiles with the current SDK
-  const authEntry = xdr.SorobanAuthorizationEntry.fromXDR(
-    Buffer.from([])
+  const invocationArgs = new xdr.InvokeContractArgs({
+    contractAddress: Address.fromString(contractId).toScAddress(),
+    // InvokeContractArgs takes the raw symbol string in stellar-sdk v16.
+    functionName,
+    args,
+  });
+
+  const rootInvocation = new xdr.SorobanAuthorizedInvocation({
+    function: xdr.SorobanAuthorizedFunction.sorobanAuthorizedFunctionTypeContractFn(invocationArgs),
+    subInvocations: [],
+  });
+
+  const credentials = xdr.SorobanCredentials.sorobanCredentialsAddress(
+    new xdr.SorobanAddressCredentials({
+      address: signer.toScAddress(),
+      nonce: new xdr.Int64(0),
+      signatureExpirationLedger: 0,
+      signature: xdr.ScVal.scvVec([]),
+    }),
   );
-  
-  return authEntry;
+
+  return new xdr.SorobanAuthorizationEntry({ credentials, rootInvocation });
 }
 
 /**
@@ -59,22 +64,31 @@ export function parseSimulationResources(
   const resources = simulationResult.resources();
   return {
     instructions: BigInt(resources.instructions()),
-    readBytes: 0n, // API varies by SDK version
-    writeBytes: 0n, // API varies by SDK version
+    readBytes: BigInt(resources.diskReadBytes()),
+    writeBytes: BigInt(resources.writeBytes()),
   };
 }
 
 /**
  * Injects resource bounds into a Soroban transaction based on simulation results.
  *
- * This ensures the transaction has sufficient resources to execute successfully
- * on the network, avoiding failures due to insufficient CPU or memory allocation.
+ * Rebuilds the transaction's ext v1 SorobanTransactionData with the given
+ * resource bounds, so the transaction has sufficient resources to execute
+ * successfully on the network.
  */
 export function injectResourceBounds(
   transaction: xdr.Transaction,
   resources: ResourceRequirements,
 ): xdr.Transaction {
-  const sorobanData = new SorobanDataBuilder()
+  const ext = transaction.ext();
+  if (ext.switch() !== 1) {
+    throw new Error('Transaction is not a Soroban transaction');
+  }
+
+  // js-xdr types `value()` as a union with `void`; the switch check above
+  // guarantees the v1 arm (SorobanTransactionData) at runtime.
+  const existingData = ext.value() as xdr.SorobanTransactionData;
+  const sorobanData = new SorobanDataBuilder(existingData.toXDR())
     .setResources(
       Number(resources.instructions),
       Number(resources.readBytes),
@@ -82,14 +96,15 @@ export function injectResourceBounds(
     )
     .build();
 
-  const ext = transaction.ext();
-  if (ext.switch() !== 1) {
-    throw new Error('Transaction is not a Soroban transaction');
-  }
-
-  // Update the Soroban data in the transaction
-  // Note: The exact API depends on the SDK version
-  return transaction;
+  return new xdr.Transaction({
+    sourceAccount: transaction.sourceAccount(),
+    fee: transaction.fee(),
+    seqNum: transaction.seqNum(),
+    cond: transaction.cond(),
+    memo: transaction.memo(),
+    operations: transaction.operations(),
+    ext: new xdr.TransactionExt(1, sorobanData),
+  });
 }
 
 /**

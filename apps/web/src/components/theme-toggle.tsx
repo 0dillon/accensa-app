@@ -28,12 +28,14 @@ function ThemeIcon({ theme }: { theme: Theme }) {
     case 'dark':
       return <Moon className="h-4 w-4 pointer-events-none" />;
     case 'oled':
-      return <div className="h-4 w-4 pointer-events-none relative">
-        <div className="absolute inset-0 bg-black rounded-sm" />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+      return (
+        <div className="h-4 w-4 pointer-events-none relative">
+          <div className="absolute inset-0 bg-black rounded-sm" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-2 h-2 bg-emerald-400 rounded-full" />
+          </div>
         </div>
-      </div>;
+      );
     case 'system':
       return <Monitor className="h-4 w-4 pointer-events-none" />;
   }

@@ -3,14 +3,16 @@ import { createWidget, type CheckoutConfig } from '@accensa/sdk';
 
 /**
  * Demo page showing the embeddable checkout widget integration
- * 
+ *
  * This demonstrates how third-party merchants can integrate the Accensa
  * checkout widget into their own websites using a simple script tag.
  */
 export default function WidgetDemo() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [widgetUrl] = useState('https://accensa-dashboard.vercel.app/widget');
-  const [status, setStatus] = useState<'idle' | 'ready' | 'processing' | 'success' | 'error'>('idle');
+  const [status, setStatus] = useState<'idle' | 'ready' | 'processing' | 'success' | 'error'>(
+    'idle',
+  );
   const [txHash, setTxHash] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -26,27 +28,23 @@ export default function WidgetDemo() {
     if (!containerRef.current) return;
 
     // Initialize widget host communication
-    const cleanup = createWidget(
-      config,
-      widgetUrl,
-      {
-        allowedOrigin: 'https://accensa-dashboard.vercel.app',
-        onReady: () => {
-          setStatus('ready');
-          console.log('Widget is ready');
-        },
-        onSuccess: (hash) => {
-          setStatus('success');
-          setTxHash(hash);
-          console.log('Payment successful:', hash);
-        },
-        onError: (error) => {
-          setStatus('error');
-          setErrorMessage(error);
-          console.error('Payment failed:', error);
-        },
+    const cleanup = createWidget(config, widgetUrl, {
+      allowedOrigin: 'https://accensa-dashboard.vercel.app',
+      onReady: () => {
+        setStatus('ready');
+        console.log('Widget is ready');
       },
-    );
+      onSuccess: (hash) => {
+        setStatus('success');
+        setTxHash(hash);
+        console.log('Payment successful:', hash);
+      },
+      onError: (error) => {
+        setStatus('error');
+        setErrorMessage(error);
+        console.error('Payment failed:', error);
+      },
+    });
 
     containerRef.current.appendChild(cleanup.iframe);
 
@@ -78,7 +76,7 @@ export default function WidgetDemo() {
           {/* Configuration Panel */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Widget Configuration</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Amount</label>
@@ -148,15 +146,21 @@ export default function WidgetDemo() {
           {/* Widget Preview */}
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-semibold mb-4">Widget Preview</h2>
-            
+
             <div className="mb-4">
-              <span className={`inline-block px-3 py-1 rounded-full text-sm ${
-                status === 'ready' ? 'bg-green-100 text-green-800' :
-                status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                status === 'success' ? 'bg-green-100 text-green-800' :
-                status === 'error' ? 'bg-red-100 text-red-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
+              <span
+                className={`inline-block px-3 py-1 rounded-full text-sm ${
+                  status === 'ready'
+                    ? 'bg-green-100 text-green-800'
+                    : status === 'processing'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : status === 'success'
+                        ? 'bg-green-100 text-green-800'
+                        : status === 'error'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                }`}
+              >
                 Status: {status}
               </span>
             </div>
@@ -205,15 +209,28 @@ export default function WidgetDemo() {
 
             <h3>Features</h3>
             <ul>
-              <li><strong>Zero CSS bleed:</strong> Shadow DOM isolation prevents style conflicts</li>
-              <li><strong>Secure communication:</strong> postMessage with origin validation</li>
-              <li><strong>Responsive variants:</strong> Pill, card, and modal layouts</li>
-              <li><strong>Theme support:</strong> Light and dark modes</li>
-              <li><strong>Bundle size:</strong> Under 45kB gzipped</li>
+              <li>
+                <strong>Zero CSS bleed:</strong> Shadow DOM isolation prevents style conflicts
+              </li>
+              <li>
+                <strong>Secure communication:</strong> postMessage with origin validation
+              </li>
+              <li>
+                <strong>Responsive variants:</strong> Pill, card, and modal layouts
+              </li>
+              <li>
+                <strong>Theme support:</strong> Light and dark modes
+              </li>
+              <li>
+                <strong>Bundle size:</strong> Under 45kB gzipped
+              </li>
             </ul>
 
             <h3>Security</h3>
-            <p>The widget uses postMessage for communication with the parent page. Always validate the origin in production:</p>
+            <p>
+              The widget uses postMessage for communication with the parent page. Always validate
+              the origin in production:
+            </p>
             <pre className="bg-gray-900 text-gray-100 p-3 rounded text-sm">
               {`initWidgetHost({
   allowedOrigin: 'https://your-accensa-dashboard.com',

@@ -1,9 +1,9 @@
 /**
  * Accensa Checkout Widget
- * 
+ *
  * An embeddable web component for accepting Accensa payments on third-party sites.
  * Uses Shadow DOM to prevent CSS bleed and postMessage for secure communication.
- * 
+ *
  * Usage:
  * <accensa-checkout
  *   merchant-id="your-merchant-id"
@@ -37,7 +37,14 @@ export interface ParentMessage {
 
 const MESSAGE_ORIGIN = '*'; // Will be validated in production
 
-class AccensaCheckoutWidget extends HTMLElement {
+// Node (SSR, unit tests) has no DOM classes; fall back to an empty base so the
+// module can be imported safely outside a browser. The widget is only ever
+// instantiated in a browser, where the real HTMLElement is used.
+const HTMLElementBase: typeof HTMLElement =
+  (globalThis as { HTMLElement?: typeof HTMLElement }).HTMLElement ??
+  (class {} as unknown as typeof HTMLElement);
+
+class AccensaCheckoutWidget extends HTMLElementBase {
   private shadow: ShadowRoot;
   private config: CheckoutConfig;
   private messageId = 0;
@@ -215,24 +222,30 @@ class AccensaCheckoutWidget extends HTMLElement {
     const html = `
       <style>${styles}</style>
       <div class="widget ${variant}">
-        ${variant === 'pill' ? `
+        ${
+          variant === 'pill'
+            ? `
           <span class="amount">${amount}</span>
           <span class="currency">${currency}</span>
           <button class="pay-button" id="payBtn">Pay</button>
-        ` : variant === 'card' ? `
+        `
+            : variant === 'card'
+              ? `
           <div style="margin-bottom: 12px;">
             <span class="amount">${amount}</span>
             <span class="currency"> ${currency}</span>
           </div>
           <button class="pay-button" id="payBtn" style="width: 100%;">Pay with Accensa</button>
-        ` : `
+        `
+              : `
           <h2 style="margin: 0 0 16px 0;">Complete Payment</h2>
           <div style="margin-bottom: 16px;">
             <span class="amount">${amount}</span>
             <span class="currency"> ${currency}</span>
           </div>
           <button class="pay-button" id="payBtn" style="width: 100%;">Pay Now</button>
-        `}
+        `
+        }
       </div>
     `;
 
@@ -305,8 +318,9 @@ class AccensaCheckoutWidget extends HTMLElement {
   }
 }
 
-// Register the custom element
-if (!customElements.get('accensa-checkout')) {
+// Register the custom element (only when a DOM exists — importing this
+// module in Node must not crash, since the SDK barrel re-exports it).
+if (typeof window !== 'undefined' && !customElements.get('accensa-checkout')) {
   customElements.define('accensa-checkout', AccensaCheckoutWidget);
 }
 

@@ -11,7 +11,7 @@ export interface StepSelectionProps {
 
 /**
  * Step 1: Receipt selection and itemized refund amount specification
- * 
+ *
  * Allows the customer to select how much of the transaction to refund.
  * Defaults to full amount but allows partial refunds.
  */
@@ -30,11 +30,11 @@ export function StepSelection({
 
   const handleCustomAmount = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    // Accept any decimal so an over-amount entry reaches the parent and the
+    // "cannot exceed" validation below can render; silently clamping here
+    // would leave that branch unreachable.
     if (value === '' || /^\d*\.?\d*$/.test(value)) {
-      const numValue = parseFloat(value);
-      if (numValue <= maxAmount || value === '') {
-        onAmountChange(value);
-      }
+      onAmountChange(value);
     }
   };
 
@@ -43,7 +43,8 @@ export function StepSelection({
       <div>
         <h3 className="text-lg font-medium mb-2">Select Refund Amount</h3>
         <p className="text-gray-600 text-sm">
-          Choose how much of the transaction you want to refund. You can request a full or partial refund.
+          Choose how much of the transaction you want to refund. You can request a full or partial
+          refund.
         </p>
       </div>
 
@@ -112,9 +113,7 @@ export function StepSelection({
       </div>
 
       {currentAmount > maxAmount && (
-        <p className="text-sm text-red-600">
-          Refund amount cannot exceed transaction amount
-        </p>
+        <p className="text-sm text-red-600">Refund amount cannot exceed transaction amount</p>
       )}
     </div>
   );
