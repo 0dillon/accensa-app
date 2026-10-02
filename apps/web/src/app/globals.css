@@ -1,6 +1,11 @@
 @import 'tailwindcss';
 @custom-variant dark (&:where(.dark, .dark *));
 
+:where(button, a, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #047857;
+  outline-offset: 2px;
+}
+
 @theme {
   --font-bellavoir: var(--font-bellavoir), serif;
   --font-camiro: var(--font-camiro), sans-serif;
@@ -40,6 +45,27 @@
 .dark .bg-grid {
   background-image: radial-gradient(circle, rgba(255, 255, 255, 0.2) 1px, transparent 1px);
 }
+
+@keyframes onboarding-confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-1rem) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(8rem) rotate(280deg);
+  }
+}
+
+.onboarding-confetti {
+  width: 0.5rem;
+  height: 0.75rem;
+  animation: onboarding-confetti-fall 1.4s ease-out both;
+}
+
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }
@@ -112,7 +138,8 @@
     animation: none;
   }
   .notification-badge-pop,
-  .notification-drawer-in {
+  .notification-drawer-in,
+  .onboarding-confetti {
     animation: none;
   }
 }

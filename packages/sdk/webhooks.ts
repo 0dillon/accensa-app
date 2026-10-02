@@ -68,7 +68,7 @@ export function verifyWebhookSignature(
   // timingSafeEqual throws on length mismatch, so that is checked first — a
   // length difference is itself a failed verification.
   if (expected.length !== received.length) return false;
-  
+
   // Use a timing-safe equality check to prevent timing attacks.
   return timingSafeEqual(expected, received);
 }

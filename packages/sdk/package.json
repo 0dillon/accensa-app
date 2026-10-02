@@ -33,7 +33,9 @@
     "./retry": "./retry.ts",
     "./currency": "./currency.ts",
     "./zk-proof": "./src/zk-proof.ts",
-    "./events": "./src/events/index.ts"
+    "./events": "./src/events/index.ts",
+    "./subscription": "./src/subscription/index.ts",
+    "./session/express": "./src/session/express.ts"
   },
   "files": [
     "dist",
@@ -47,6 +49,7 @@
     "lint": "echo 'No lint configured for @accensa/sdk'",
     "test": "vitest run",
     "test:watch": "vitest",
+    "bench": "vitest bench",
     "typecheck": "tsc --noEmit",
     "gen:vectors": "node scripts/generate-vectors.mjs",
     "gen:api": "openapi-typescript ../../apps/web/openapi.yaml -o ./generated/api-types.ts && prettier --write ./generated/api-types.ts",

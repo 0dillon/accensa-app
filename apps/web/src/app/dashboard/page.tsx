@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatAmount, sumAmounts, assetLabel } from '@/lib/money';
 import { describeSync, type SyncState } from '@/lib/sync-status';
 import { CSV_BOM, paymentsCsvFilename, paymentsToCsv } from '@/lib/payments-csv';
@@ -17,6 +17,10 @@ import { describeFailure } from '@/lib/network-status';
 import type { Role } from '@/lib/rbac';
 import { formatTimestamp, toISO8601 } from '@/lib/format-timestamp';
 import { focusRestorer, getFocusable, wrapTabTarget } from '@/lib/dialog-focus';
+import { SocialShareButtons } from '@/components/receipts/SocialShareButtons';
+import { SavingsBanner } from '@/components/merchant/SavingsBanner';
+import { summarizeSavings } from '@/lib/analytics/savingsCalculator';
+import { RiskScoreBadge } from '@/components/transactions/RiskScoreBadge';
 
 interface Payment {
   tx_hash: string;
@@ -27,6 +31,9 @@ interface Payment {
   ts: string;
   route: string | null;
   method: string | null;
+  risk_score?: number;
+  risk_country_code?: string;
+  requires_manual_review?: boolean;
 }
 
 type LoadState =
@@ -41,6 +48,9 @@ type LoadState =
       totalAmount?: string;
     }
   | { status: 'error'; message: string };
+
+/** Stable empty array for the loading/error branches. */
+const EMPTY_PAYMENTS: Payment[] = [];
 
 /** A page of payments as `/api/payments` returns them. */
 interface PaymentsResponse {
@@ -131,8 +141,17 @@ function saveRefundedToStorage(refunded: ReadonlySet<string>): void {
   }
 }
 
+const RISK_THRESHOLD_STORAGE_KEY = 'accensa-risk-review-threshold';
+
+function loadRiskThreshold(): number {
+  if (typeof window === 'undefined') return 75;
+  const stored = Number(localStorage.getItem(RISK_THRESHOLD_STORAGE_KEY));
+  return Number.isInteger(stored) && stored >= 0 && stored <= 100 ? stored : 75;
+}
+
 export function Dashboard() {
   const [selected, setSelected] = useState<Payment | null>(null);
+  const [manualReviewAbove, setManualReviewAbove] = useState(() => loadRiskThreshold());
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   // Refunds issued in this session. The indexer does not watch RefundVault
   // events yet, so a refund is otherwise invisible until someone opens the
@@ -246,6 +265,23 @@ export function Dashboard() {
   }
   const totalCount = data?.total_count ?? payments.length;
 
+  // Fee savings versus a card processor (#419), computed from the payments
+  // already loaded for this page — the newest settlements, which is what the
+  // table below shows. The banner's "this month" figure covers those rows.
+  // Depends on `data?.payments` (a stable reference per SWR) rather than the
+  // `payments` alias above, whose `?? []` would allocate a new array — and
+  // re-run this memo — on every poll.
+  const settledPayments = data?.payments ?? EMPTY_PAYMENTS;
+  const savings = useMemo(
+    () => summarizeSavings(settledPayments.map((p) => ({ amount: p.amount, ts: p.ts }))),
+    [settledPayments],
+  );
+  const monthLabel = new Date().toLocaleString('en-US', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+
   return (
     <main className="min-h-screen text-slate-600 dark:text-slate-200 font-sans selection:bg-slate-200 dark:selection:bg-white/10 transition-colors duration-300 bg-grid p-6 md:p-12 lg:p-20 pt-28 md:pt-32 lg:pt-32">
       <PageContainer className="space-y-12">
@@ -290,6 +326,16 @@ export function Dashboard() {
           </div>
         </header>
 
+        {state.status === 'ready' && (
+          <SavingsBanner
+            monthSavings={savings.monthSavings}
+            totalSavings={savings.totalSavings}
+            monthTransactions={savings.monthTransactionCount}
+            asset={totalAsset || 'XLM'}
+            monthLabel={monthLabel}
+          />
+        )}
+
         {/* Data Table Section */}
         <section className="bg-white/90 dark:bg-[#0c131d]/90 backdrop-blur-2xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.12),inset_0_1px_1px_rgba(255,255,255,0.8)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5),inset_0_1px_1px_rgba(255,255,255,0.15)] transition-colors duration-300">
           <div className="px-8 py-6 flex flex-wrap gap-4 justify-between items-center bg-white/40 dark:bg-black/40 backdrop-blur-xl transition-colors duration-300 border-b border-slate-100 dark:border-white/5">
@@ -307,6 +353,24 @@ export function Dashboard() {
             </div>
             <div className="flex items-center gap-4">
               <StatusPill state={state} onRetry={reload} />
+              <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                Review above
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={manualReviewAbove}
+                  aria-label="Manual review risk threshold"
+                  onChange={(event) => {
+                    const value = Number(event.target.value);
+                    if (Number.isInteger(value) && value >= 0 && value <= 100) {
+                      setManualReviewAbove(value);
+                      localStorage.setItem(RISK_THRESHOLD_STORAGE_KEY, String(value));
+                    }
+                  }}
+                  className="w-16 border border-slate-300 bg-white px-2 py-1 text-slate-900 dark:border-white/20 dark:bg-white/5 dark:text-white"
+                />
+              </label>
               <ExportCsvButton payments={payments} totalCount={totalCount} />
               <SyncNowButton onSynced={reload} />
             </div>
@@ -383,11 +447,20 @@ export function Dashboard() {
             {state.status === 'ready' && payments.length > 0 && (
               <>
                 {/* Mobile View */}
-                <PaymentsCardList payments={payments} onSelect={setSelected} />
+                <PaymentsCardList
+                  payments={payments}
+                  onSelect={setSelected}
+                  manualReviewAbove={manualReviewAbove}
+                />
 
                 {/* Desktop View */}
                 <div className="hidden md:block overflow-x-auto">
-                  <PaymentsTable payments={payments} refunded={refunded} onSelect={setSelected} />
+                  <PaymentsTable
+                    payments={payments}
+                    refunded={refunded}
+                    onSelect={setSelected}
+                    manualReviewAbove={manualReviewAbove}
+                  />
                 </div>
               </>
             )}
@@ -562,6 +635,14 @@ export function PaymentModal({
             </a>
           </div>
 
+          <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/10 transition-colors duration-300">
+            <SocialShareButtons
+              txHash={selected.tx_hash}
+              amount={formatAmount(selected.amount)}
+              asset={assetLabel(selected.asset)}
+            />
+          </div>
+
           {canRefund !== false && (
             <div className="pt-6 mt-6 border-t border-slate-100 dark:border-white/10 transition-colors duration-300">
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-slate-300 mb-3">
@@ -585,9 +666,11 @@ export function PaymentModal({
 export function PaymentsCardList({
   payments,
   onSelect,
+  manualReviewAbove = 75,
 }: {
   payments: Payment[];
   onSelect: (payment: Payment) => void;
+  manualReviewAbove?: number;
 }) {
   return (
     <div className="md:hidden divide-y divide-slate-100 dark:divide-white/5">
@@ -616,6 +699,13 @@ export function PaymentsCardList({
               </time>
             </div>
           </div>
+          {typeof payment.risk_score === 'number' && (
+            <RiskScoreBadge
+              score={payment.risk_score}
+              countryCode={payment.risk_country_code}
+              requiresManualReview={payment.risk_score > manualReviewAbove}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -664,10 +754,12 @@ export function PaymentsTable({
   payments,
   refunded,
   onSelect,
+  manualReviewAbove = 75,
 }: {
   payments: Payment[];
   refunded: ReadonlySet<string>;
   onSelect: (payment: Payment) => void;
+  manualReviewAbove?: number;
 }) {
   return (
     <table className="w-full text-left border-collapse whitespace-nowrap">
@@ -688,6 +780,9 @@ export function PaymentsTable({
           </th>
           <th scope="col" className="px-8 py-5">
             Time
+          </th>
+          <th scope="col" className="px-8 py-5">
+            Risk
           </th>
         </tr>
       </thead>
@@ -744,6 +839,17 @@ export function PaymentsTable({
               <time dateTime={toISO8601(payment.ts)} title={toISO8601(payment.ts)}>
                 {formatTimestamp(payment.ts)}
               </time>
+            </td>
+            <td className="px-8 py-5">
+              {typeof payment.risk_score === 'number' ? (
+                <RiskScoreBadge
+                  score={payment.risk_score}
+                  countryCode={payment.risk_country_code}
+                  requiresManualReview={payment.risk_score > manualReviewAbove}
+                />
+              ) : (
+                <span className="text-slate-400 dark:text-slate-500">Not evaluated</span>
+              )}
             </td>
           </tr>
         ))}

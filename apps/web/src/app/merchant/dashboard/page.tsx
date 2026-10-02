@@ -43,13 +43,13 @@ export default function MerchantDashboard() {
   const { data: metrics, error: metricsError } = useSWR<DashboardMetrics>(
     online ? '/api/merchant/metrics' : null,
     fetchMetrics,
-    { refreshInterval: 15000 }
+    { refreshInterval: 15000 },
   );
 
   const { data: volumeData, error: volumeError } = useSWR<VolumeData[]>(
     online ? `/api/merchant/volume?range=${timeRange}` : null,
     fetchVolumeData,
-    { refreshInterval: 30000 }
+    { refreshInterval: 30000 },
   );
 
   const handleTimeRangeChange = useCallback((range: TimeRange) => {
@@ -69,7 +69,7 @@ export default function MerchantDashboard() {
               Live Telemetry
             </h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-white/40 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-full">
               <div

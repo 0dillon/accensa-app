@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 export interface TransactionFilters {
   search: string;
@@ -8,40 +8,51 @@ export interface TransactionFilters {
   dateRange: string;
 }
 
-/**
- * The transaction filters, read straight off the router instead of being
- * mirrored into state: the URL is already the source of truth, so a copy would
- * only need an effect to stay in step with it.
- */
+function readQueryFilters(query: ReturnType<typeof useRouter>['query']): TransactionFilters {
+  const read = (key: string) => {
+    const value = query[key];
+    return (typeof value === 'string' ? value : undefined) ?? '';
+  };
+  return {
+    search: read('search'),
+    status: read('status'),
+    asset: read('asset'),
+    dateRange: read('dateRange'),
+  };
+}
+
 export function useTransactionFilters() {
   const router = useRouter();
 
-  const filters: TransactionFilters = {
-    search: (router.query.search as string) || '',
-    status: (router.query.status as string) || '',
-    asset: (router.query.asset as string) || '',
-    dateRange: (router.query.dateRange as string) || '',
-  };
+  // The URL is the source of truth: filters are derived from the router query
+  // instead of being mirrored into state through an effect, which both avoids
+  // the cascading render the lint rule rejects and keeps back/forward
+  // navigation in sync for free (the old effect only re-read the URL when the
+  // query object changed identity, never on history restoration).
+  const query = router.query;
+  const filters = useMemo(() => readQueryFilters(query), [query]);
 
   const updateFilters = useCallback(
     (newFilters: Partial<TransactionFilters>) => {
-      const query = { ...router.query };
+      const merged = { ...filters, ...newFilters };
 
-      Object.entries(newFilters).forEach(([key, value]) => {
+      const nextQuery = { ...router.query };
+      Object.entries(merged).forEach(([key, value]) => {
         if (value) {
-          query[key] = value;
+          nextQuery[key] = value;
         } else {
-          delete query[key];
+          delete nextQuery[key];
         }
       });
 
-      router.push({ pathname: router.pathname, query }, undefined, { shallow: true });
+      router.push({ pathname: router.pathname, query: nextQuery }, undefined, { shallow: true });
     },
-    [router],
+    [filters, router],
   );
 
   const clearFilters = useCallback(() => {
-    router.push({ pathname: router.pathname }, undefined, { shallow: true });
+    // Pushing an empty query re-derives the empty filters on the next render.
+    router.push({ pathname: router.pathname, query: {} }, undefined, { shallow: true });
   }, [router]);
 
   return { filters, updateFilters, clearFilters };

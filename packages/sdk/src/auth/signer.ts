@@ -1,12 +1,4 @@
-import {
-  Keypair,
-  xdr,
-  TransactionBuilder,
-  Networks,
-  Contract,
-  Address,
-  Account,
-} from '@stellar/stellar-sdk';
+import { Keypair, xdr, TransactionBuilder, Contract, Account, Address } from '@stellar/stellar-sdk';
 import { buildSorobanAuthEntry, type SorobanAuthEntryInput } from './builder';
 
 export interface OfflineSigningInput {
@@ -43,69 +35,71 @@ export function signOfflineTransaction(input: OfflineSigningInput): {
     timeout = 30,
   } = input;
 
-  // Create keypair from secret key
   const keypair = Keypair.fromSecret(secretKey);
-  const source = new Address(sourceAccount);
 
-  // Build the auth entry
-  const authEntry = buildSorobanAuthEntry({
-    contractId,
-    functionName,
-    args,
-    signer: source,
-    networkPassphrase,
-  });
-
-  // Build the transaction
-  const contract = new Contract(contractId);
+  // Build and sign the transaction with the contract invocation.
   const account = new Account(sourceAccount, sequence);
-
-  const transaction = new TransactionBuilder(account, {
-    fee,
-    networkPassphrase,
-  })
-    .addOperation(contract.call(functionName, ...args))
+  const transaction = new TransactionBuilder(account, { fee, networkPassphrase })
+    .addOperation(new Contract(contractId).call(functionName, ...args))
     .setTimeout(timeout)
     .build();
 
-  // Sign the transaction
   transaction.sign(keypair);
+
+  // The transaction hash is the SHA-256 of the signature base (the bytes the
+  // signatures are made over), matching what the network computes.
+  const { createHash } = require('crypto') as typeof import('crypto');
+  const transactionHash = createHash('sha256').update(transaction.signatureBase()).digest('hex');
 
   return {
     signedTransaction: transaction.toXDR(),
-    transactionHash: transaction.hash().toString('hex'),
+    transactionHash,
   };
 }
 
 /**
  * Creates a SorobanAuthorizationEntry and signs it offline.
  *
- * This is useful for pre-authorizing contract invocations without submitting
- * the full transaction immediately.
+ * The signed payload is the XDR encoding of the entry's root invocation, and
+ * the signature is stored in the address credentials' signature vector as an
+ * `ScBytes` value (the shape the Soroban host expects from account
+ * authorizations).
  */
 export function signAuthEntryOffline(
   input: Omit<SorobanAuthEntryInput, 'signer'> & { secretKey: string },
 ): xdr.SorobanAuthorizationEntry {
   const keypair = Keypair.fromSecret(input.secretKey);
-  const signer = new Address(keypair.publicKey());
 
-  const authEntry = buildSorobanAuthEntry({
+  const entry = buildSorobanAuthEntry({
     ...input,
-    signer,
+    signer: new Address(keypair.publicKey()),
   });
 
-  // Sign the auth entry
-  const signature = keypair.sign(authEntry.toXDR());
-  
-  // Update the credentials with the signature
-  // Note: The exact API depends on the SDK version
-  return authEntry;
+  const payload = entry.rootInvocation().toXDR();
+  const signature = keypair.sign(payload);
+
+  // js-xdr types `value()` as a union with `void`; the entry was built with
+  // address credentials, so the arm is SorobanAddressCredentials at runtime.
+  const credentialsValue = entry.credentials().value() as xdr.SorobanAddressCredentials;
+  const signedCredentials = new xdr.SorobanAddressCredentials({
+    address: credentialsValue.address(),
+    nonce: credentialsValue.nonce(),
+    signatureExpirationLedger: credentialsValue.signatureExpirationLedger(),
+    signature: xdr.ScVal.scvVec([xdr.ScVal.scvBytes(signature)]),
+  });
+
+  return new xdr.SorobanAuthorizationEntry({
+    credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(signedCredentials),
+    rootInvocation: entry.rootInvocation(),
+  });
 }
 
 /**
  * Verifies a signed SorobanAuthorizationEntry.
  *
- * Checks that the signature is valid for the given public key and entry.
+ * Checks that the credentials' first signature verifies against the entry's
+ * root invocation preimage for the given public key, and that the credentials
+ * belong to that key.
  */
 export function verifyAuthEntrySignature(
   authEntry: xdr.SorobanAuthorizationEntry,
@@ -113,12 +107,25 @@ export function verifyAuthEntrySignature(
 ): boolean {
   try {
     const keypair = Keypair.fromPublicKey(publicKey);
-    const creds = authEntry.credentials();
-    
-    // Note: The exact verification logic depends on the SDK version
-    // This is a simplified version
-    const entryXdr = authEntry.toXDR();
-    return keypair.verify(entryXdr, Buffer.from([]));
+    // js-xdr types `value()` as a union with `void`; if the credentials are
+    // not address credentials the casts' members simply do not exist and the
+    // catch below returns false.
+    const credentialsValue = authEntry.credentials().value() as xdr.SorobanAddressCredentials;
+
+    if (Address.fromScAddress(credentialsValue.address()).toString() !== publicKey) {
+      return false;
+    }
+
+    // The signature field is an ScVal (an scvVec of ScBytes); js-xdr types
+    // `value()` as the full ScVal payload union, so narrow it to the vec array.
+    const signatures = credentialsValue.signature().value() as xdr.ScVal[];
+    if (!signatures || signatures.length === 0) {
+      return false;
+    }
+
+    const payload = authEntry.rootInvocation().toXDR();
+    const signatureBytes = signatures[0].value() as Buffer;
+    return keypair.verify(payload, signatureBytes);
   } catch {
     return false;
   }

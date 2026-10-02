@@ -6,6 +6,11 @@ export interface NotificationOptions {
 
 let audioContext: AudioContext | null = null;
 
+/** Safari still exposes the Audio API only under the prefixed global. */
+interface WindowWithWebkitAudio extends Window {
+  webkitAudioContext?: typeof AudioContext;
+}
+
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
   if (!('Notification' in window)) {
     return 'denied';
@@ -15,10 +20,11 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
 
 export function playAudioAlert(toneFreq: number = 440) {
   if (!audioContext) {
-    // Safari still ships the prefixed constructor only.
     const AudioContextCtor =
-      window.AudioContext ??
-      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      window.AudioContext ?? (window as WindowWithWebkitAudio).webkitAudioContext;
+    if (!AudioContextCtor) {
+      throw new Error('Web Audio API is not supported in this browser');
+    }
     audioContext = new AudioContextCtor();
   }
 

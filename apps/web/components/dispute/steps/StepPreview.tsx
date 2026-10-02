@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DisputeReason } from '../DisputeFlowModal';
+import { DisputeReason } from '../disputeReason';
 
 export interface StepPreviewProps {
   transactionHash: string;
@@ -20,7 +20,7 @@ const reasonLabels: Record<DisputeReason, string> = {
 
 /**
  * Step 3: Preview on-chain transaction fees, dispute window rules, and submission confirmation
- * 
+ *
  * Displays summary of the dispute request including:
  * - Transaction details
  * - Refund amount
@@ -56,7 +56,9 @@ export function StepPreview({
           <span className="text-gray-600">Transaction</span>
           <div className="text-right">
             <div className="font-mono text-sm">{truncatedTxHash}</div>
-            <div className="text-sm text-gray-500">{refundAmount} {assetSymbol}</div>
+            <div className="text-sm text-gray-500">
+              {refundAmount} {assetSymbol}
+            </div>
           </div>
         </div>
 
@@ -112,7 +114,9 @@ export function StepPreview({
         <ul className="space-y-2 text-sm text-amber-800">
           <li className="flex items-start gap-2">
             <span className="text-amber-600 mt-0.5">•</span>
-            <span>Dispute window: You have 30 days from the transaction date to file a dispute.</span>
+            <span>
+              Dispute window: You have 30 days from the transaction date to file a dispute.
+            </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-amber-600 mt-0.5">•</span>

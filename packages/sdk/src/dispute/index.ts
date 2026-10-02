@@ -46,16 +46,16 @@ export interface DisputeResult {
 
 /**
  * Submit a dispute to the escrow contract
- * 
+ *
  * This function builds and submits a Stellar transaction that invokes the
  * escrow contract's dispute function. The transaction must be signed by the
  * payer's wallet (typically via Freighter in the browser).
- * 
+ *
  * @param request - The dispute request details
  * @param signerPublicKey - The public key of the signer (payer)
  * @param opts - Dispute options including contract ID and network config
  * @returns Promise resolving to the dispute result
- * 
+ *
  * @example
  * ```ts
  * const result = await submitDispute(
@@ -110,7 +110,7 @@ export async function submitDispute(
     // Note: In a browser context, this transaction would be signed by Freighter
     // The caller is responsible for signing before submitting
     // This function returns the unsigned transaction for the UI to handle signing
-    
+
     return {
       success: true,
       transactionHash: transaction.hash().toString('hex'),
@@ -131,9 +131,9 @@ export async function submitDispute(
 
 /**
  * Validate a dispute request before submission
- * 
+ *
  * Checks that the request is well-formed and within the dispute window.
- * 
+ *
  * @param request - The dispute request to validate
  * @param transactionDate - The date of the original transaction (ISO-8601 string)
  * @param disputeWindowDays - Number of days allowed for disputes (default 30)
@@ -193,18 +193,18 @@ export function validateDisputeRequest(
 
 /**
  * Estimate the gas fee for a dispute transaction
- * 
+ *
  * @param opts - Dispute options
  * @returns Estimated fee in stroops (1 stroop = 0.0000001 XLM)
  */
 export function estimateDisputeFee(opts: DisputeOptions): number {
   // Base fee for Stellar transaction (100 stroops)
   const baseFee = 100;
-  
+
   // Estimated resource fee for contract invocation
   // This is an estimate - actual fee depends on contract complexity
   const contractResourceFee = 10000;
-  
+
   return baseFee + contractResourceFee;
 }
 
