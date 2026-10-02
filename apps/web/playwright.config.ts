@@ -33,13 +33,14 @@ export default defineConfig({
   // screenshots still catch layout regressions. 0.04 comfortably covers the
   // Windows-vs-Linux rendering delta (~2% observed for the navbar) with ~2x
   // headroom, whereas a real layout regression produces a much larger diff.
-  snapshotPathTemplate: '{testDir}/__screenshots__/{arg}{ext}',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{projectName}/{arg}{ext}',
+  updateSnapshots: 'none',
   expect: {
     toHaveScreenshot: {
       maxDiffPixelRatio: 0.005,
     },
   },
-    projects: [
+  projects: [
     {
       name: 'mobile-light',
       use: { ...devices['iPhone 12'], viewport: { width: 375, height: 812 }, colorScheme: 'light' },
@@ -50,7 +51,11 @@ export default defineConfig({
     },
     {
       name: 'tablet-light',
-      use: { ...devices['iPad Mini'], viewport: { width: 768, height: 1024 }, colorScheme: 'light' },
+      use: {
+        ...devices['iPad Mini'],
+        viewport: { width: 768, height: 1024 },
+        colorScheme: 'light',
+      },
     },
     {
       name: 'tablet-dark',
@@ -58,11 +63,19 @@ export default defineConfig({
     },
     {
       name: 'desktop-light',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, colorScheme: 'light' },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        colorScheme: 'light',
+      },
     },
     {
       name: 'desktop-dark',
-      use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 }, colorScheme: 'dark' },
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1440, height: 900 },
+        colorScheme: 'dark',
+      },
     },
   ],
   webServer: {
