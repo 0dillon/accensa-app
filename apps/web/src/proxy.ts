@@ -29,7 +29,10 @@ const key = secretKey ? new TextEncoder().encode(secretKey) : null;
 function securityHeaderValues(): { csp: string; nonce: string } {
   const nonce = btoa(crypto.randomUUID());
 
-  return { csp: buildContentSecurityPolicy(nonce), nonce };
+  return {
+    csp: buildContentSecurityPolicy(nonce, process.env.NODE_ENV === 'development'),
+    nonce,
+  };
 }
 
 /** Attaches the security hardening headers to a response. */

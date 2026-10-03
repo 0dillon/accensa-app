@@ -15,4 +15,9 @@ describe('CSP reporting policy', () => {
     expect(policy).toContain(`report-to ${CSP_REPORT_GROUP}`);
     expect(reportingEndpointsHeader()).toBe(`${CSP_REPORT_GROUP}="${CSP_REPORT_ENDPOINT}"`);
   });
+
+  it('allows eval only when explicitly building the development policy', () => {
+    expect(buildContentSecurityPolicy('prod-nonce')).not.toContain("'unsafe-eval'");
+    expect(buildContentSecurityPolicy('dev-nonce', true)).toContain("'unsafe-eval'");
+  });
 });
