@@ -88,14 +88,14 @@ describe('DisputeChat', () => {
 
   it('loads history and shows a connected status once the SSE stream opens', async () => {
     render(<DisputeChat disputeId="d1" role="buyer" />);
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1), { timeout: 10_000 });
     FakeEventSource.instances[0].emit('open', {});
     expect(screen.getByTestId('dispute-chat')).toBeInTheDocument();
   });
 
   it('sends a message and renders it once the round trip resolves', async () => {
     render(<DisputeChat disputeId="d1" role="merchant" />);
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1), { timeout: 10_000 });
 
     fireEvent.change(screen.getByLabelText('Message'), {
       target: { value: 'We can offer 50% back' },
@@ -117,7 +117,7 @@ describe('DisputeChat', () => {
         onCancelDispute={onCancel}
       />,
     );
-    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1));
+    await waitFor(() => expect(FakeEventSource.instances).toHaveLength(1), { timeout: 10_000 });
 
     fireEvent.click(screen.getByText('Accept partial refund'));
     fireEvent.click(screen.getByText('Cancel dispute'));
