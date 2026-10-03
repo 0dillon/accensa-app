@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { parseRole, type Role } from '@/lib/rbac';
+import { buildContentSecurityPolicy, reportingEndpointsHeader } from '@/lib/security/csp-policy';
+import { activeStoreAddress } from '@/lib/stores/activeStoreToken';
 
 /**
  * No fallback secret, deliberately.
@@ -27,21 +29,10 @@ const key = secretKey ? new TextEncoder().encode(secretKey) : null;
 function securityHeaderValues(): { csp: string; nonce: string } {
   const nonce = btoa(crypto.randomUUID());
 
-  const cspHeader = `
-    default-src 'self';
-    script-src 'self' 'nonce-${nonce}' 'strict-dynamic';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' blob: data:;
-    font-src 'self';
-    object-src 'none';
-    base-uri 'self';
-    form-action 'self';
-    frame-ancestors 'none';
-    connect-src 'self' https: wss:;
-    upgrade-insecure-requests;
-  `;
-
-  return { csp: cspHeader.replace(/\s{2,}/g, ' ').trim(), nonce };
+  return {
+    csp: buildContentSecurityPolicy(nonce, process.env.NODE_ENV === 'development'),
+    nonce,
+  };
 }
 
 /** Attaches the security hardening headers to a response. */
@@ -50,6 +41,7 @@ function harden(response: NextResponse, csp: string): NextResponse {
   // lockdown headers below, which main's middleware applied to every response.
   if (csp) {
     response.headers.set('Content-Security-Policy', csp);
+    response.headers.set('Reporting-Endpoints', reportingEndpointsHeader());
   }
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-Content-Type-Options', 'nosniff');
@@ -89,11 +81,15 @@ export default async function proxy(request: NextRequest) {
     path === '/api/status' ||
     path.startsWith('/api/auth') ||
     path.startsWith('/api/hook/') ||
-    path.startsWith('/api/receipts/');
+    path.startsWith('/api/receipts/') ||
+    path.startsWith('/api/inventory/') ||
+    path === '/api/security/csp-report';
   const isCronSync =
     (path === '/api/sync' || path === '/api/webhooks/deliver') && request.method === 'GET';
   const isPrivateApi = path.startsWith('/api/') && !isPublicApi && !isCronSync;
-  const isDashboard = path.startsWith('/dashboard');
+  const isDashboard =
+    path.startsWith('/dashboard') ||
+    (path.startsWith('/merchant') && !path.startsWith('/merchant/onboarding'));
 
   if (isPrivateApi || isDashboard) {
     if (!key) {
@@ -129,6 +125,10 @@ export default async function proxy(request: NextRequest) {
       // without a role claim default to admin, so an existing cookie is never
       // locked out of the dashboard mid-deployment.
       const role: Role = parseRole(payload.role) ?? 'admin';
+      const selectedStoreAddress = await activeStoreAddress(
+        request.cookies.get('accensa_active_store')?.value,
+        merchantAddress ?? '',
+      );
 
       // Route handlers trust this header for merchant scoping instead of each
       // re-verifying and re-decoding the session cookie themselves. It is only
@@ -136,7 +136,9 @@ export default async function proxy(request: NextRequest) {
       // forge it — the proxy runs before the request reaches a route handler
       // and this header is set on the *outgoing* request, overwriting any
       // value a caller tried to smuggle in.
-      requestHeaders.set('x-accensa-merchant', merchantAddress ?? '');
+      requestHeaders.set('x-accensa-org-merchant', merchantAddress ?? '');
+      requestHeaders.set('x-accensa-merchant', selectedStoreAddress ?? merchantAddress ?? '');
+      requestHeaders.set('x-accensa-sub', merchantAddress ? `user:${merchantAddress}` : '');
       requestHeaders.set('x-accensa-role', role);
       return hardenedNext();
     } catch {
