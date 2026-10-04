@@ -68,11 +68,7 @@ function statusText(status: WalletStatus): string {
   }
 }
 
-export function WalletConnectModal({
-  open,
-  onOpenChange,
-  onConnected,
-}: WalletConnectModalProps) {
+export function WalletConnectModal({ open, onOpenChange, onConnected }: WalletConnectModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [providerStates, setProviderStates] = useState<ProviderState[]>(() =>
     PROVIDERS.map((adapter) => ({ adapter, status: { kind: 'disconnected' } })),
@@ -167,16 +163,11 @@ export function WalletConnectModal({
       storeProvider(providerId);
       setPreferredProvider(providerId);
       setProviderStates((states) =>
-        states.map((state) =>
-          state.adapter === adapter ? { ...state, status } : state,
-        ),
+        states.map((state) => (state.adapter === adapter ? { ...state, status } : state)),
       );
       onConnected?.({ provider: adapter.name, address: status.address });
 
-      if (
-        status.networkPassphrase &&
-        status.networkPassphrase !== expectedNetworkPassphrase()
-      ) {
+      if (status.networkPassphrase && status.networkPassphrase !== expectedNetworkPassphrase()) {
         setNetworkWarning(
           `Your wallet is connected to ${status.network ?? 'a different Stellar network'}, but this app is configured for ${process.env.NEXT_PUBLIC_STELLAR_NETWORK ?? 'testnet'}.`,
         );
@@ -222,14 +213,24 @@ export function WalletConnectModal({
       </div>
 
       <div className="space-y-3 p-5">
-        {loading && <p role="status" className="text-sm text-slate-500">Checking wallet extensions…</p>}
+        {loading && (
+          <p role="status" className="text-sm text-slate-500">
+            Checking wallet extensions…
+          </p>
+        )}
         {error && (
-          <p role="alert" className="border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/5 dark:text-rose-200">
+          <p
+            role="alert"
+            className="border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-400/30 dark:bg-rose-400/5 dark:text-rose-200"
+          >
             {error}
           </p>
         )}
         {networkWarning && (
-          <p role="alert" className="border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/5 dark:text-amber-100">
+          <p
+            role="alert"
+            className="border border-amber-400 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-400/5 dark:text-amber-100"
+          >
             {networkWarning}
           </p>
         )}

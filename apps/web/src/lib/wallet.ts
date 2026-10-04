@@ -286,13 +286,9 @@ async function loadWalletKit(): Promise<WalletKitState> {
     import('@creit.tech/stellar-wallets-kit/modules/xbull'),
     import('@creit.tech/stellar-wallets-kit/modules/hana'),
   ]);
-  const modules = [
-    new freighter.FreighterModule(),
-    new xbull.xBullModule(),
-    new hana.HanaModule(),
-  ];
-  const preferredWalletId = modules.find(
-    (module) => module.productName.toLowerCase().startsWith(lastWalletProvider() ?? ''),
+  const modules = [new freighter.FreighterModule(), new xbull.xBullModule(), new hana.HanaModule()];
+  const preferredWalletId = modules.find((module) =>
+    module.productName.toLowerCase().startsWith(lastWalletProvider() ?? ''),
   )?.productId;
   sdk.StellarWalletsKit.init({
     modules,
@@ -311,7 +307,9 @@ function getWalletKit(): Promise<WalletKitState> {
 
 function kitAdapter(providerName: 'xBull' | 'Hana', installUrl: string): WalletAdapter {
   const findModule = (modules: WalletKitModule[]) =>
-    modules.find((module) => module.productName.toLowerCase().startsWith(providerName.toLowerCase()));
+    modules.find((module) =>
+      module.productName.toLowerCase().startsWith(providerName.toLowerCase()),
+    );
 
   return {
     name: providerName,
@@ -358,7 +356,8 @@ function kitAdapter(providerName: 'xBull' | 'Hana', installUrl: string): WalletA
       if (!walletModule) throw new Error(`${providerName} wallet is unavailable`);
       kit.setWallet(walletModule.productId);
       const result = await kit.signTransaction(xdr, opts);
-      if (!result.signedTxXdr) throw new Error(`${providerName} did not return a signed transaction`);
+      if (!result.signedTxXdr)
+        throw new Error(`${providerName} did not return a signed transaction`);
       return result.signedTxXdr;
     },
   };

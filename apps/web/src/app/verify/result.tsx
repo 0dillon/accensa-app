@@ -112,7 +112,10 @@ function CheckCard({
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border transition-colors duration-300 ${result.ok ? 'bg-emerald-50 dark:bg-emerald-500/5 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/20' : 'bg-red-50 dark:bg-red-500/5 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/20'}`}
         >
           {result.ok ? (
-            <span aria-hidden="true" className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+            <span
+              aria-hidden="true"
+              className="w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400 animate-pulse"
+            />
           ) : (
             <span aria-hidden="true" className="w-1.5 h-1.5 bg-red-500 dark:bg-red-400" />
           )}

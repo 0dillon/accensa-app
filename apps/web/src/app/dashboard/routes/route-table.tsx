@@ -1,9 +1,6 @@
 import React from 'react';
 import { formatAmount, assetLabel } from '@/lib/money';
-import {
-  UNATTRIBUTED_LABEL,
-  type RouteBucket,
-} from '@/lib/revenue-analytics';
+import { UNATTRIBUTED_LABEL, type RouteBucket } from '@/lib/revenue-analytics';
 
 export function RouteTable({
   breakdown,
@@ -53,7 +50,9 @@ export function RouteTable({
               <td className="py-3 pr-4">
                 {row.attributed ? (
                   <span className="font-mono text-slate-900 dark:text-white break-all">
-                    <span className="text-emerald-600 dark:text-emerald-400 mr-2">{row.method}</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 mr-2">
+                      {row.method}
+                    </span>
                     {row.route}
                   </span>
                 ) : (

@@ -256,7 +256,7 @@ export async function fetchRecentDeliveries(
        GROUP BY d.id
        ORDER BY d.updated_at DESC, d.id DESC
        LIMIT 50`,
-     [merchantId],
+    [merchantId],
   );
   return result.rows;
 }

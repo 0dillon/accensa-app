@@ -291,7 +291,9 @@ export function PaymentsCardList({
                       {payment.method}
                     </span>
                   )}
-                  <span className="font-mono text-slate-600 dark:text-slate-300">{payment.route}</span>
+                  <span className="font-mono text-slate-600 dark:text-slate-300">
+                    {payment.route}
+                  </span>
                 </div>
               ) : (
                 <span className="text-slate-400 dark:text-slate-600">-</span>
@@ -386,7 +388,9 @@ export function PaymentsTable({
                       {payment.method}
                     </span>
                   )}
-                  <span className="font-mono text-slate-700 dark:text-slate-300">{payment.route}</span>
+                  <span className="font-mono text-slate-700 dark:text-slate-300">
+                    {payment.route}
+                  </span>
                 </div>
               ) : (
                 <span className="text-slate-500 dark:text-slate-400">-</span>

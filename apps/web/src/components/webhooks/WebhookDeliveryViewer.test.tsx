@@ -41,9 +41,7 @@ describe('WebhookDeliveryViewer', () => {
   beforeEach(() => {
     fetchMock.mockReset();
     vi.stubGlobal('fetch', fetchMock);
-    fetchMock.mockResolvedValue(
-      new Response(JSON.stringify(deliveryData), { status: 200 }),
-    );
+    fetchMock.mockResolvedValue(new Response(JSON.stringify(deliveryData), { status: 200 }));
   });
 
   it('shows delivery status and expandable payload and attempt history', async () => {
@@ -60,7 +58,8 @@ describe('WebhookDeliveryViewer', () => {
 
   it('queues a redelivery and reports the outcome', async () => {
     fetchMock.mockImplementation(async (_input, init) => {
-      if (init?.method === 'POST') return new Response(JSON.stringify({ queued: true }), { status: 202 });
+      if (init?.method === 'POST')
+        return new Response(JSON.stringify({ queued: true }), { status: 202 });
       return new Response(JSON.stringify(deliveryData), { status: 200 });
     });
     render(<WebhookDeliveryViewer />);

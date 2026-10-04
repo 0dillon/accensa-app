@@ -86,13 +86,7 @@ describe('WalletConnectModal', () => {
     mocks.freighter.connect.mockResolvedValue(connected);
     const onOpenChange = vi.fn();
     const onConnected = vi.fn();
-    render(
-      <WalletConnectModal
-        open
-        onOpenChange={onOpenChange}
-        onConnected={onConnected}
-      />,
-    );
+    render(<WalletConnectModal open onOpenChange={onOpenChange} onConnected={onConnected} />);
 
     const freighterRow = screen.getByText('Freighter').parentElement?.parentElement;
     const connectButton = within(freighterRow as HTMLElement).getByRole('button', {

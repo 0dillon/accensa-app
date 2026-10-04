@@ -90,8 +90,10 @@ export async function webhookSummary(client: Client, merchantId: number): Promis
         attempts: row.attempts,
         lastStatusCode: row.last_status_code,
         lastError: row.last_error,
-        createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
-        updatedAt: row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
+        createdAt:
+          row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+        updatedAt:
+          row.updated_at instanceof Date ? row.updated_at.toISOString() : String(row.updated_at),
         attemptHistory: row.attempt_history.map((attempt) => ({
           ...attempt,
           durationMs: Number(attempt.durationMs),

@@ -94,7 +94,8 @@ export default function WebhookDeliveryViewer() {
     setNotice(null);
     try {
       const response = await fetch(`/api/webhooks/${id}`, { method: 'POST' });
-      if (!response.ok) throw new Error(await responseError(response, 'Could not queue redelivery'));
+      if (!response.ok)
+        throw new Error(await responseError(response, 'Could not queue redelivery'));
       setNotice(`Delivery ${id} queued for redelivery.`);
       await loadDeliveries(true);
     } catch (cause) {
@@ -108,7 +109,9 @@ export default function WebhookDeliveryViewer() {
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Webhook deliveries</h2>
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+            Webhook deliveries
+          </h2>
           <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {data?.configured ? 'Endpoint configured' : 'Endpoint not configured'}
           </p>
@@ -145,18 +148,27 @@ export default function WebhookDeliveryViewer() {
       )}
 
       {error && (
-        <div role="alert" className="border border-rose-300 p-3 text-sm text-rose-700 dark:text-rose-300">
+        <div
+          role="alert"
+          className="border border-rose-300 p-3 text-sm text-rose-700 dark:text-rose-300"
+        >
           {error}
         </div>
       )}
       {notice && (
-        <p role="status" aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-400">
+        <p
+          role="status"
+          aria-live="polite"
+          className="text-sm text-emerald-700 dark:text-emerald-400"
+        >
           {notice}
         </p>
       )}
 
       {loading ? (
-        <p role="status" className="py-8 text-sm text-slate-500">Loading webhook deliveries…</p>
+        <p role="status" className="py-8 text-sm text-slate-500">
+          Loading webhook deliveries…
+        </p>
       ) : error && !data ? (
         <button
           type="button"
@@ -252,7 +264,9 @@ function DeliveryRows({
             aria-label={`${isExpanded ? 'Hide' : 'Show'} details for delivery ${delivery.id}`}
             className="inline-flex size-8 items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
           >
-            <ChevronDown className={`size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              className={`size-4 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+            />
           </button>
         </td>
       </tr>
@@ -268,7 +282,9 @@ function DeliveryRows({
               </div>
               <div>
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <h3 className="text-xs font-semibold uppercase text-slate-500">Attempt history</h3>
+                  <h3 className="text-xs font-semibold uppercase text-slate-500">
+                    Attempt history
+                  </h3>
                   {canRedeliver && (
                     <button
                       type="button"
@@ -282,17 +298,28 @@ function DeliveryRows({
                   )}
                 </div>
                 {delivery.lastError && (
-                  <p className="mb-3 text-xs text-rose-700 dark:text-rose-300">{delivery.lastError}</p>
+                  <p className="mb-3 text-xs text-rose-700 dark:text-rose-300">
+                    {delivery.lastError}
+                  </p>
                 )}
                 <ol className="divide-y divide-slate-200 dark:divide-white/10">
                   {delivery.attemptHistory.map((attempt) => (
-                    <li key={attempt.attemptNumber} className="py-2 text-xs text-slate-600 dark:text-slate-400">
+                    <li
+                      key={attempt.attemptNumber}
+                      className="py-2 text-xs text-slate-600 dark:text-slate-400"
+                    >
                       <span className="font-medium text-slate-800 dark:text-slate-200">
                         Attempt {attempt.attemptNumber}
                       </span>
-                      {' · '}{attempt.statusCode ?? 'No response'}{' · '}{attempt.durationMs} ms
-                      {' · '}{new Date(attempt.createdAt).toLocaleString()}
-                      {attempt.error && <p className="mt-1 text-rose-700 dark:text-rose-300">{attempt.error}</p>}
+                      {' · '}
+                      {attempt.statusCode ?? 'No response'}
+                      {' · '}
+                      {attempt.durationMs} ms
+                      {' · '}
+                      {new Date(attempt.createdAt).toLocaleString()}
+                      {attempt.error && (
+                        <p className="mt-1 text-rose-700 dark:text-rose-300">{attempt.error}</p>
+                      )}
                     </li>
                   ))}
                   {delivery.attemptHistory.length === 0 && (
