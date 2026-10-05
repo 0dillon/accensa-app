@@ -93,5 +93,6 @@ test('Dispute Flow @visual', async ({ page, context }) => {
 test('POS Terminal @visual', async ({ page, context }) => {
   await context.addCookies([await sessionCookie()]);
   await page.goto('/merchant/pos');
-  await expect(page.locator('main')).toHaveScreenshot('pos-terminal.png');
+  await expect(page).toHaveScreenshot('pos-terminal.png');
 });
+
