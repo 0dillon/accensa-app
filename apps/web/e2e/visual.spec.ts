@@ -76,6 +76,20 @@ test('Merchant Dashboard - payments table @visual', async ({ page, context }) =>
   });
 });
 
+test('Checkout Modal @visual', async ({ page, context }) => {
+  await context.addCookies([await sessionCookie()]);
+  await page.goto('/merchant/settings/branding');
+  const preview = page.locator('section[aria-label="Live preview"]');
+  await expect(preview).toBeVisible();
+  await expect(preview).toHaveScreenshot('checkout-modal.png');
+});
+
+test('Dispute Flow @visual', async ({ page, context }) => {
+  await context.addCookies([await sessionCookie()]);
+  await page.goto('/merchant/disputes');
+  await expect(page.locator('main')).toHaveScreenshot('dispute-flow.png');
+});
+
 test('POS Terminal @visual', async ({ page, context }) => {
   await context.addCookies([await sessionCookie()]);
   await page.goto('/merchant/pos');
