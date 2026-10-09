@@ -56,7 +56,7 @@ export default function POS() {
   const displayAmount = (parseInt(amount) / 100).toFixed(2);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <Head>
         <title>Accensa POS</title>
         <meta
@@ -77,6 +77,6 @@ export default function POS() {
 
         <Keypad onInput={handleInput} onClear={handleClear} onSubmit={handleSubmit} />
       </div>
-    </div>
+    </main>
   );
 }

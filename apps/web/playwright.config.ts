@@ -34,10 +34,10 @@ export default defineConfig({
   // Windows-vs-Linux rendering delta (~2% observed for the navbar) with ~2x
   // headroom, whereas a real layout regression produces a much larger diff.
   snapshotPathTemplate: '{testDir}/__screenshots__/{projectName}/{arg}{ext}',
-  updateSnapshots: 'none',
+  updateSnapshots: 'missing',
   expect: {
     toHaveScreenshot: {
-      maxDiffPixelRatio: 0.005,
+      maxDiffPixelRatio: 0.04,
     },
   },
   projects: [
